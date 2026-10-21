@@ -59,8 +59,8 @@ def dashboard() -> None:
 
 		net = income - expense
 		with st.container(key="finance-dashboard-kpis", horizontal=True):
-			st.metric("Орлого (Сүүлийн 30 день)", f"{income:,.2f} ₮", border=True)
-			st.metric("Зарлага (Сүүлийн 30 день)", f"{expense:,.2f} ₮", border=True)
+			st.metric("Орлого (Сүүлийн 30 өдөр)", f"{income:,.2f} ₮", border=True)
+			st.metric("Зарлага (Сүүлийн 30 өдөр)", f"{expense:,.2f} ₮", border=True)
 			st.metric("Цэвэр ашиг / Мөнгөн урсгал", f"{net:,.2f} ₮", border=True)
 			st.metric("Ангилах шаардлагатай", f"{unclassified:,}", border=True)
 
@@ -68,7 +68,7 @@ def dashboard() -> None:
 		with chart_column:
 			st.subheader("Сар бүрийн мөнгөн урсгал")
 			if monthly.empty:
-				st.info("Сар бүрийн орлого, зарлагыг харахын тулд банкийн хуулгаа импортлоорой.")
+				st.info("Сар бүрийн орлого, зарлагыг харахын тулд банкны хуулгаа импортлоорой.")
 			else:
 				chart_data = monthly.rename(
 					columns={"income": "Орлого", "expense": "Зарлага"}
@@ -104,7 +104,7 @@ def dashboard() -> None:
 				st.plotly_chart(chart, alt="Сүүлийн зургаан сарын зарлага ангиллаар")
 	except Exception as error:
 		st.error(
-			"Мэдээллийн сантай холбогдож чадсангүй. DATABASE_URL болон өгөгдлийн сангийн эхлүүлэлтийг шалгана уу.",
+			"Өгөгдлийн сантай холбогдож чадсангүй. Холболтын тохиргоо болон сангийн эхлүүлэлтийг шалгана уу.",
 			title="Өгөгдлийн сангийн алдаа",
 		)
 

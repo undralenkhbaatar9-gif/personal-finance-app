@@ -149,9 +149,9 @@ try:
 	with pd.ExcelWriter(xlsx_buffer, engine="openpyxl") as writer:
 		export.to_excel(writer, index=False, sheet_name="Гүйлгээнүүд")
 	with st.container(horizontal=True):
-		st.download_button("CSV татах", csv_data, "гүйлгээ.csv", mime="text/csv")
+		st.download_button("Текстэн файл татах", csv_data, "гүйлгээ.csv", mime="text/csv")
 		st.download_button(
-			"Excel файл татах",
+			"Хүснэгтэн файл татах",
 			xlsx_buffer.getvalue(),
 			"гүйлгээ.xlsx",
 			mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

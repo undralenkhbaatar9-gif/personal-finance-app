@@ -362,13 +362,13 @@ if rules_tab.open:
 
 if backup_tab.open:
 	with backup_tab:
-		folder = st.text_input("Нөөц файл хадгалах хавтас", value=str(Path.home() / "finance-backups"))
+		folder = st.text_input("Нөөц файл хадгалах хавтас", value=str(Path.home() / "санхүү-нөөцлөлт"))
 		if st.button("Нөөцлөлт үүсгэх", type="primary", icon=":material/backup:"):
 			pg_dump = shutil.which("pg_dump")
 			if pg_dump is None:
-				st.error("pg_dump PATH-д олдсонгүй. PostgreSQL-ийн клиент хэрэгслийг суулгана уу.")
+				st.error("Өгөгдлийн сан нөөцлөх хэрэгсэл олдсонгүй. PostgreSQL-ийн командын мөрийн хэрэгслийг суулгана уу.")
 			elif not DATABASE_URL:
-				st.error("Нөөцлөлт үүсгэхийн өмнө DATABASE_URL тохируулна уу.")
+				st.error("Нөөцлөлт үүсгэхийн өмнө өгөгдлийн сангийн холболтын хаягийг тохируулна уу.")
 			else:
 				try:
 					database_url = make_url(DATABASE_URL)
@@ -401,7 +401,7 @@ if backup_tab.open:
 							env=environment,
 						)
 					if result.returncode:
-						st.error(result.stderr.strip() or "pg_dump алдааны мэдээлэлгүйгээр амжилтгүй боллоо.")
+						st.error(result.stderr.strip() or "Нөөцлөх үйлдэл дэлгэрэнгүй мэдээлэлгүйгээр амжилтгүй боллоо.")
 					else:
 						st.success(f"Нөөц файл үүслээ: {output_path}")
 						st.toast("Өгөгдлийн сангийн нөөц файл амжилттай үүслээ.")
