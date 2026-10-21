@@ -8,7 +8,7 @@ from sqlalchemy import func, select, text
 from finance.db import get_session
 from finance.models import Category, Transaction
 from finance.reports import expense_by_category, monthly_summary
-from finance.ui import apply_global_styles, render_footer
+from finance.ui import apply_global_styles, render_footer, style_plotly_chart
 
 st.set_page_config(page_title="Санхүү", page_icon=":material/account_balance_wallet:", layout="wide")
 
@@ -79,19 +79,10 @@ def dashboard() -> None:
 					y=["Орлого", "Зарлага"],
 					barmode="group",
 					labels={"month": "Сар", "value": "₮", "variable": "Орлого, зарлага"},
-					color_discrete_map={"Орлого": "#16876f", "Зарлага": "#d2644b"},
+					color_discrete_map={"Орлого": "#55e39f", "Зарлага": "#ff789b"},
 				)
-				chart.update_layout(
-					margin=dict(l=8, r=8, t=12, b=8),
-					legend_title_text="",
-					paper_bgcolor="rgba(0,0,0,0)",
-					plot_bgcolor="rgba(0,0,0,0)",
-					font=dict(family="Aptos, Segoe UI, sans-serif", color="#5f6580", size=12),
-					hoverlabel=dict(bgcolor="#24264a", bordercolor="#7770d4", font=dict(color="#ffffff")),
-					hovermode="x unified",
-				)
-				chart.update_xaxes(showgrid=False, linecolor="rgba(75,81,125,0.18)")
-				chart.update_yaxes(gridcolor="rgba(75,81,125,0.1)", zerolinecolor="rgba(75,81,125,0.16)")
+				chart.update_layout(legend_title_text="", hovermode="x unified")
+				chart = style_plotly_chart(chart)
 				st.plotly_chart(chart, alt="Сүүлийн зургаан сарын орлого ба зарлагын харьцуулалт")
 
 		with category_column:
@@ -106,18 +97,10 @@ def dashboard() -> None:
 					y="category",
 					orientation="h",
 					labels={"amount": "Дүн (₮)", "category": "Ангилал"},
-					color_discrete_sequence=["#4b7f73"],
+					color_discrete_sequence=["#36e2cc"],
 				)
-				chart.update_layout(
-					margin=dict(l=8, r=8, t=12, b=8),
-					yaxis_title="",
-					paper_bgcolor="rgba(0,0,0,0)",
-					plot_bgcolor="rgba(0,0,0,0)",
-					font=dict(family="Aptos, Segoe UI, sans-serif", color="#5f6580", size=12),
-					hoverlabel=dict(bgcolor="#24264a", bordercolor="#168c83", font=dict(color="#ffffff")),
-				)
-				chart.update_xaxes(gridcolor="rgba(75,81,125,0.1)", zerolinecolor="rgba(75,81,125,0.16)")
-				chart.update_yaxes(showgrid=False)
+				chart.update_layout(yaxis_title="")
+				chart = style_plotly_chart(chart)
 				st.plotly_chart(chart, alt="Сүүлийн зургаан сарын зарлага ангиллаар")
 	except Exception as error:
 		st.error(

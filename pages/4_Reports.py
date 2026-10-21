@@ -14,7 +14,7 @@ from finance.reports import (
 	transactions_export,
 	unclassified_total,
 )
-from finance.ui import apply_global_styles, render_footer
+from finance.ui import apply_global_styles, render_footer, style_plotly_chart
 
 apply_global_styles()
 st.title("Тайлан мэдээ")
@@ -107,9 +107,10 @@ try:
 			y="amount",
 			color="type",
 			barmode="group",
+			color_discrete_map={"Орлого": "#55e39f", "Зарлага": "#ff789b"},
 			labels={"month": "Сар", "amount": "Дүн (₮)", "type": "Гүйлгээний төрөл"},
 		)
-		st.plotly_chart(chart, alt="Сар бүрийн орлого ба зарлагын харьцуулалт")
+		st.plotly_chart(style_plotly_chart(chart), alt="Сар бүрийн орлого ба зарлагын харьцуулалт")
 
 	st.subheader("Ангиллаарх зарлага")
 	if expenses.empty:
@@ -122,9 +123,10 @@ try:
 			x="amount",
 			y="category",
 			orientation="h",
+			color_discrete_sequence=["#36e2cc"],
 			labels={"amount": "Дүн (₮)", "category": "Ангилал"},
 		)
-		st.plotly_chart(chart, alt="Ангилал тус бүрийн зарлагын дүн")
+		st.plotly_chart(style_plotly_chart(chart), alt="Ангилал тус бүрийн зарлагын дүн")
 		st.dataframe(
 			expenses.rename(columns={"category": "Ангилал", "amount": "Дүн"}).assign(
 				Дүн=expenses["amount"].map(lambda amount: f"{amount:,.2f} ₮")
