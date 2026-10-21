@@ -14,7 +14,9 @@ from finance.reports import (
 	transactions_export,
 	unclassified_total,
 )
+from finance.ui import apply_global_styles
 
+apply_global_styles()
 st.title("Тайлан мэдээ")
 today = date.today()
 with st.sidebar:

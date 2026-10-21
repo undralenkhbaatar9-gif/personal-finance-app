@@ -13,7 +13,9 @@ from finance.classifier import classify_transactions, test_rule
 from finance.config import DATABASE_URL
 from finance.db import get_session
 from finance.models import Account, Category, Counterparty, Rule, Transaction
+from finance.ui import apply_global_styles
 
+apply_global_styles()
 st.title("Тохиргоо")
 rerun_requested = False
 kind_labels = {"income": "Орлого", "expense": "Зарлага", "transfer": "Шилжүүлэг"}

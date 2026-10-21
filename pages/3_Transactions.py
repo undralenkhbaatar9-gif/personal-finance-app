@@ -6,7 +6,9 @@ from sqlalchemy import or_, select
 
 from finance.db import get_session
 from finance.models import Account, Category, Counterparty, Rule, Transaction
+from finance.ui import apply_global_styles
 
+apply_global_styles()
 st.title("Бүх гүйлгээ")
 rerun_requested = False
 today = date.today()

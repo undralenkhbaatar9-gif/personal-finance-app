@@ -9,7 +9,9 @@ from finance.db import get_session
 from finance.importer import DuplicateFileError, ValidationError, import_statement, validate
 from finance.models import Import
 from finance.parsers import PARSERS
+from finance.ui import apply_global_styles
 
+apply_global_styles()
 
 def _validation_message(message: str) -> str:
 	translations = {

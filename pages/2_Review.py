@@ -7,7 +7,9 @@ from sqlalchemy import select
 from finance.classifier import classify_transactions
 from finance.db import get_session
 from finance.models import Category, Counterparty, Transaction
+from finance.ui import apply_global_styles
 
+apply_global_styles()
 st.title("Гүйлгээ ангилах")
 rerun_requested = False
 kind_labels = {"income": "Орлого", "expense": "Зарлага", "transfer": "Шилжүүлэг"}
