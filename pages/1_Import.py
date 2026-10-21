@@ -36,6 +36,7 @@ bank_code = st.selectbox(
 	format_func=lambda code: "Хаан банк" if code == "khan" else PARSERS[code].name,
 )
 uploaded_file = st.file_uploader("Банкны хуулгаа сонгоно уу", type=["xlsx", "csv"])
+st.caption("Excel эсвэл CSV хуулгаа сонгох буюу файл сонгох хэсэгт чирж оруулна уу.")
 
 if uploaded_file is not None:
 	suffix = Path(uploaded_file.name).suffix.lower()

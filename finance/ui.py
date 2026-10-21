@@ -353,6 +353,25 @@ def apply_global_styles() -> None:
 			overflow: hidden;
 		}
 
+		[data-testid="stTable"] table {
+			border-collapse: separate;
+			border-spacing: 0;
+			color: #f2f0ff;
+		}
+
+		[data-testid="stTable"] th {
+			border-bottom: 1px solid rgba(204, 203, 255, 0.18);
+			background: rgba(49, 45, 78, 0.96);
+			color: #ffffff;
+			font-weight: 700;
+		}
+
+		[data-testid="stTable"] td {
+			border-bottom: 1px solid rgba(204, 203, 255, 0.09);
+			background: rgba(20, 22, 36, 0.9);
+			color: #eeecff;
+		}
+
 		[data-testid="stTextInput"] input,
 		[data-testid="stNumberInput"] input,
 		[data-testid="stDateInput"] input,
@@ -367,6 +386,22 @@ def apply_global_styles() -> None:
 			box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
 			backdrop-filter: blur(8px);
 			-webkit-backdrop-filter: blur(8px);
+		}
+
+		[data-testid="stTextInput"] input,
+		[data-testid="stNumberInput"] input,
+		[data-testid="stDateInput"] input,
+		[data-testid="stTextArea"] textarea,
+		[data-testid="stTimeInput"] input {
+			color: #ffffff !important;
+			caret-color: #42e6d0;
+		}
+
+		[data-testid="stTextInput"] input::placeholder,
+		[data-testid="stNumberInput"] input::placeholder,
+		[data-testid="stTextArea"] textarea::placeholder {
+			color: #aaa9c3 !important;
+			opacity: 1;
 		}
 
 		[data-testid="stTextInput"] input:focus,
@@ -455,6 +490,72 @@ def apply_global_styles() -> None:
 			border-color: #42e6d0;
 			background: rgba(35, 51, 59, 0.82);
 			box-shadow: 0 0 22px rgba(66, 230, 208, 0.09);
+		}
+
+		[data-testid="stFileUploaderDropzoneInstructions"] {
+			font-size: 0 !important;
+			color: transparent !important;
+		}
+
+		[data-testid="stFileUploaderDropzoneInstructions"]::before,
+		[data-testid="stFileUploaderDropzoneInstructions"]::after {
+			display: block;
+			color: #f4f2ff;
+			font-size: 0.9rem;
+			font-weight: 650;
+			line-height: 1.5;
+		}
+
+		[data-testid="stFileUploaderDropzoneInstructions"]::before {
+			content: "Файлаа энд чирж оруулах эсвэл товчоор сонгоно уу";
+		}
+
+		[data-testid="stFileUploaderDropzoneInstructions"]::after {
+			margin-top: 0.2rem;
+			color: #bcbad2;
+			content: "Дэмжих төрөл: XLSX, CSV · Нэг файл 200 МБ хүртэл";
+			font-size: 0.76rem;
+			font-weight: 500;
+		}
+
+		[data-testid="stFileUploaderDropzone"] button {
+			min-height: 2.65rem;
+			border: 1px solid rgba(194, 185, 255, 0.5);
+			border-radius: 10px;
+			background: linear-gradient(115deg, #b1a3ff, #c5a1ff 58%, #73ead7);
+			color: #151526 !important;
+			font-size: 0 !important;
+			font-weight: 800;
+			box-shadow: 0 6px 20px rgba(124, 103, 242, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+		}
+
+		[data-testid="stFileUploaderDropzone"] button::after {
+			content: "Файл сонгох";
+			color: #151526;
+			font-size: 0.86rem;
+			font-weight: 800;
+		}
+
+		[data-testid="stFileUploaderDropzone"] button:hover {
+			border-color: #ffffff;
+			filter: brightness(1.08);
+			box-shadow: 0 8px 24px rgba(124, 103, 242, 0.34), 0 0 18px rgba(66, 230, 208, 0.15);
+		}
+
+		[data-testid="stDataFrame"],
+		[data-testid="stDataEditor"] {
+			--gdg-bg-cell: rgba(18, 20, 33, 0.98);
+			--gdg-bg-cell-medium: rgba(25, 27, 43, 0.98);
+			--gdg-bg-header: rgba(38, 37, 61, 0.99);
+			--gdg-bg-header-has-focus: rgba(61, 54, 104, 0.99);
+			--gdg-bg-header-hovered: rgba(52, 49, 82, 0.99);
+			--gdg-text-dark: #ffffff;
+			--gdg-text-medium: #eeecff;
+			--gdg-text-light: #c3c1d8;
+			--gdg-text-header: #ffffff;
+			--gdg-text-header-selected: #ffffff;
+			--gdg-border-color: rgba(204, 203, 255, 0.18);
+			--gdg-accent-color: #9689ff;
 		}
 
 		[data-testid="stDataFrame"] *,
