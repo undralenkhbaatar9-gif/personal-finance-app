@@ -1,0 +1,10 @@
+streamlit
+pandas
+openpyxl
+sqlalchemy
+psycopg[binary]
+alembic
+python-dotenv
+plotly
+pyyaml
+pytest
