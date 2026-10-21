@@ -23,6 +23,18 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from finance.db import Base
 
+__all__ = [
+    "Account",
+    "Bank",
+    "Base",
+    "Budget",
+    "Category",
+    "Counterparty",
+    "Import",
+    "Rule",
+    "Transaction",
+]
+
 
 class Bank(Base):
     __tablename__ = "banks"
