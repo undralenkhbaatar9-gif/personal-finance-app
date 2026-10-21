@@ -18,11 +18,10 @@ from sqlalchemy import (
     func,
     text,
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.dialects.postgresql import BIGINT
+from sqlalchemy.orm import Mapped, mapped_column
 
-
-class Base(DeclarativeBase):
-    pass
+from finance.db import Base
 
 
 class Bank(Base):
@@ -117,7 +116,9 @@ class Transaction(Base):
         Index("ix_transactions_counterparty_id", "counterparty_id"),
     )
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True
+    )
     account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"), nullable=False)
     import_id: Mapped[int | None] = mapped_column(ForeignKey("imports.id"))
     txn_datetime: Mapped[datetime] = mapped_column(DateTime, nullable=False)

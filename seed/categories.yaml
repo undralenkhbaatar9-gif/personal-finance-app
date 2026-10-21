@@ -1,0 +1,52 @@
+banks:
+  - code: khan
+    name: Khan Bank
+
+categories:
+  income:
+    - Self-earned
+    - Gift received
+    - Donation received
+    - Side business / freelance
+    - Scholarship / stipend
+    - Interest & investment income
+    - Refunds & reimbursements
+    - Family support
+    - Other income
+  expense:
+    - Housing
+    - Utilities
+    - Restaurant
+    - Groceries
+    - Transportation
+    - Healthcare & Medical
+    - Debt Payments
+    - Personal Care & Grooming
+    - Family & Pet Care
+    - Entertainment & Recreation
+    - Clothing & Apparel
+    - Savings & Investments
+    - Gifts & Donations
+    - Miscellaneous
+    - Education & tuition
+    - Phone & internet
+    - Subscriptions & apps
+    - Bank fees & charges
+    - Taxes & government fees
+    - Travel
+  transfer:
+    in_reports: false
+    names:
+      - Between own accounts
+      - Cash withdrawal
+      - Loan given / repaid to me
+      - Loan received / repaid by me
+
+rules:
+  - priority: 900
+    field: branch_code
+    match_type: equals
+    pattern: "5000"
+    amount_sign: -1
+    category_kind: expense
+    category_name: Bank fees & charges
