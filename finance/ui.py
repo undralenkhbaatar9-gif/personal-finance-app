@@ -1,5 +1,7 @@
 import streamlit as st
 
+__all__ = ["apply_global_styles", "render_footer", "style_plotly_chart"]
+
 
 def apply_global_styles() -> None:
 	"""Apply the shared visual theme to the active Streamlit page."""
