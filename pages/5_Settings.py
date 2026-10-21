@@ -14,10 +14,36 @@ from finance.config import DATABASE_URL
 from finance.db import get_session
 from finance.models import Account, Category, Counterparty, Rule, Transaction
 
-st.title("Settings")
+st.title("Тохиргоо")
 rerun_requested = False
+kind_labels = {"income": "Орлого", "expense": "Зарлага", "transfer": "Шилжүүлэг"}
+kind_values = {label: value for value, label in kind_labels.items()}
+field_labels = {
+	"description": "Гүйлгээний утга",
+	"counterparty_account": "Харилцагчийн данс",
+	"branch_code": "Салбарын код",
+	"match_key": "Таних түлхүүр",
+}
+field_values = {label: value for value, label in field_labels.items()}
+match_labels = {
+	"equals": "Тэнцүү",
+	"contains": "Агуулсан",
+	"regex": "Тогтмол илэрхийлэл",
+}
+match_values = {label: value for value, label in match_labels.items()}
+
+
+def _localize_category(value: object) -> str:
+	if not isinstance(value, str) or not value:
+		return ""
+	kind, separator, name = value.partition(": ")
+	if not separator:
+		return value
+	return f"{kind_labels.get(kind, kind)}: {name}"
+
+
 accounts_tab, categories_tab, rules_tab, backup_tab = st.tabs(
-	["Accounts", "Categories", "Rules", "Backup"],
+	["Данс", "Ангилал", "Дүрэм", "Нөөцлөлт"],
 	key="settings-tabs",
 	on_change="rerun",
 )
@@ -45,23 +71,23 @@ if accounts_tab.open:
 					disabled=["id", "account"],
 					column_config={
 						"id": None,
-						"account": st.column_config.TextColumn("Account"),
-						"nickname": st.column_config.TextColumn("Nickname"),
-						"own account": st.column_config.CheckboxColumn("Own account"),
+						"account": st.column_config.TextColumn("Дансны дугаар"),
+						"nickname": st.column_config.TextColumn("Нэр"),
+						"own account": st.column_config.CheckboxColumn("Өөрийн данс"),
 					},
-					alt="Account nicknames and own-account settings",
+					alt="Дансны нэр болон өөрийн дансны тохиргоо",
 				)
-				if st.button("Save account settings", key="save-account-settings"):
+				if st.button("Дансны тохиргоо хадгалах", key="save-account-settings"):
 					for row in edited.to_dict("records"):
 						account = session.get(Account, int(row["id"]))
 						if account is not None:
 							account.nickname = row["nickname"] or None
 							account.is_own = bool(row["own account"])
 					classify_transactions(session, None)
-					st.success("Account settings saved.")
+					st.success("Дансны тохиргоог хадгаллаа.")
 					rerun_requested = True
 		except Exception as error:
-			st.error(f"Could not load accounts: {error}")
+			st.error(f"Дансны мэдээллийг ачаалж чадсангүй: {error}")
 
 if categories_tab.open:
 	with categories_tab:
@@ -75,7 +101,7 @@ if categories_tab.open:
 					[
 						{
 							"id": category.id,
-							"kind": category.kind,
+							"kind": kind_labels.get(category.kind, category.kind),
 							"name": category.name,
 							"in reports": category.in_reports,
 						}
@@ -89,51 +115,56 @@ if categories_tab.open:
 					disabled=["id", "kind"],
 					column_config={
 						"id": None,
-						"kind": st.column_config.TextColumn("Kind"),
-						"name": st.column_config.TextColumn("Name", required=True),
-						"in reports": st.column_config.CheckboxColumn("Include in reports"),
+						"kind": st.column_config.TextColumn("Төрөл"),
+						"name": st.column_config.TextColumn("Нэр", required=True),
+						"in reports": st.column_config.CheckboxColumn("Тайланд оруулах"),
 					},
-					alt="Category names and report inclusion settings",
+					alt="Ангиллын нэр болон тайланд оруулах тохиргоо",
 				)
-				if st.button("Save category changes", key="save-category-changes"):
+				if st.button("Ангиллын өөрчлөлтийг хадгалах", key="save-category-changes"):
 					for row in edited.to_dict("records"):
 						category = session.get(Category, int(row["id"]))
 						if category is not None:
+							category.kind = kind_values[row["kind"]]
 							category.name = row["name"].strip()
 							category.in_reports = bool(row["in reports"])
-					st.success("Category changes saved.")
+					st.success("Ангиллын өөрчлөлтийг хадгаллаа.")
 					rerun_requested = True
 
 				with st.form("add-category", border=False):
-					kind = st.selectbox("Kind", ["income", "expense", "transfer"])
-					name = st.text_input("Category name")
-					in_reports = st.checkbox("Include in reports", value=kind != "transfer")
-					add_category = st.form_submit_button("Add category", icon=":material/add:")
+					kind_label = st.selectbox("Төрөл", list(kind_values))
+					name = st.text_input("Ангиллын нэр")
+					in_reports = st.checkbox("Тайланд оруулах", value=kind_values[kind_label] != "transfer")
+					add_category = st.form_submit_button("Ангилал нэмэх", icon=":material/add:")
 				if add_category:
 					if not name.strip():
-						st.error("Enter a category name.")
+						st.error("Ангиллын нэр оруулна уу.")
 					elif session.scalar(
 						select(Category.id).where(
-							Category.kind == kind, Category.name == name.strip()
+							Category.kind == kind_values[kind_label], Category.name == name.strip()
 						)
 					) is not None:
-						st.error("That category already exists for this kind.")
+						st.error("Энэ төрөлд ийм нэртэй ангилал бүртгэлтэй байна.")
 					else:
 						session.add(
-							Category(kind=kind, name=name.strip(), in_reports=in_reports)
+							Category(kind=kind_values[kind_label], name=name.strip(), in_reports=in_reports)
 						)
-						st.success("Category added.")
+						st.success("Ангилал нэмлээ.")
 						rerun_requested = True
 
 				removable = [
-					f"{category.kind}: {category.name} (id {category.id})"
+					f"{kind_labels.get(category.kind, category.kind)}: {category.name}"
 					for category in categories
 				]
 				selected_delete = st.selectbox(
-					"Category to remove", options=[""] + removable, key="category-delete-select"
+					"Устгах ангилал", options=[""] + removable, key="category-delete-select"
 				)
-				if selected_delete and st.button("Delete category", key="delete-category"):
-					category_id = int(selected_delete.rsplit("id ", 1)[1].rstrip(")"))
+				if selected_delete and st.button("Ангилал устгах", key="delete-category"):
+					category_id = next(
+						category.id
+						for category in categories
+						if f"{kind_labels.get(category.kind, category.kind)}: {category.name}" == selected_delete
+					)
 					used_by_transaction = session.scalar(
 						select(func.count()).select_from(Transaction).where(Transaction.category_id == category_id)
 					)
@@ -147,15 +178,15 @@ if categories_tab.open:
 						select(func.count()).select_from(Category).where(Category.parent_id == category_id)
 					)
 					if used_by_transaction or used_by_counterparty or used_by_rule or used_as_parent:
-						st.error("This category is in use and cannot be deleted.")
+						st.error("Ашиглагдаж буй ангиллыг устгах боломжгүй.")
 					else:
 						category = session.get(Category, category_id)
 						if category is not None:
 							session.delete(category)
-						st.success("Category deleted.")
+						st.success("Ангиллыг устгалаа.")
 						rerun_requested = True
 		except Exception as error:
-			st.error(f"Could not load categories: {error}")
+			st.error(f"Ангиллыг ачаалж чадсангүй: {error}")
 
 if rules_tab.open:
 	with rules_tab:
@@ -165,7 +196,8 @@ if rules_tab.open:
 					select(Category).order_by(Category.kind, Category.name)
 				).all()
 				category_labels = {
-					category.id: f"{category.kind}: {category.name}" for category in categories
+					category.id: f"{kind_labels.get(category.kind, category.kind)}: {category.name}"
+					for category in categories
 				}
 				category_ids = {label: category_id for category_id, label in category_labels.items()}
 				rules = session.scalars(select(Rule).order_by(Rule.priority, Rule.id)).all()
@@ -173,10 +205,14 @@ if rules_tab.open:
 					{
 						"id": rule.id,
 						"priority": rule.priority,
-						"field": rule.field,
-						"match_type": rule.match_type,
+						"field": field_labels.get(rule.field, rule.field),
+						"match_type": match_labels.get(rule.match_type, rule.match_type),
 						"pattern": rule.pattern,
-						"amount_sign": "Any" if rule.amount_sign is None else str(rule.amount_sign),
+						"amount_sign": (
+							"Аль ч дүн"
+							if rule.amount_sign is None
+							else "Орлого (+)" if rule.amount_sign == 1 else "Зарлага (-)"
+						),
 						"category": category_labels.get(rule.category_id, ""),
 						"active": bool(rule.active),
 					}
@@ -190,25 +226,25 @@ if rules_tab.open:
 					disabled=["id"],
 					column_config={
 						"id": None,
-						"priority": st.column_config.NumberColumn("Priority", min_value=0, step=1),
+						"priority": st.column_config.NumberColumn("Эрэмбэ", min_value=0, step=1),
 						"field": st.column_config.SelectboxColumn(
-							"Field", options=["description", "counterparty_account", "branch_code", "match_key"]
+							"Талбар", options=list(field_values)
 						),
 						"match_type": st.column_config.SelectboxColumn(
-							"Match type", options=["equals", "contains", "regex"]
+							"Нөхцөл", options=list(match_values)
 						),
-						"pattern": st.column_config.TextColumn("Pattern", required=True),
+						"pattern": st.column_config.TextColumn("Хайлтын утга", required=True),
 						"amount_sign": st.column_config.SelectboxColumn(
-							"Amount sign", options=["Any", "-1", "1"]
+							"Дүнгийн төрөл", options=["Аль ч дүн", "Орлого (+)", "Зарлага (-)"]
 						),
 						"category": st.column_config.SelectboxColumn(
-							"Category", options=list(category_ids), required=True
+							"Ангилал", options=list(category_ids), required=True
 						),
-						"active": st.column_config.CheckboxColumn("Active"),
+						"active": st.column_config.CheckboxColumn("Идэвхтэй"),
 					},
-					alt="Editable transaction classification rules",
+					alt="Гүйлгээ ангилах дүрмийн жагсаалт",
 				)
-				if st.button("Save rules", key="save-rules"):
+				if st.button("Дүрэм хадгалах", key="save-rules"):
 					edited_rows = edited_rules.to_dict("records")
 					kept_ids = {
 						int(row["id"])
@@ -227,55 +263,60 @@ if rules_tab.open:
 						if rule is None:
 							continue
 						rule.priority = int(row["priority"] or 100)
-						rule.field = row["field"]
-						rule.match_type = row["match_type"]
+						rule.field = field_values[row["field"]]
+						rule.match_type = match_values[row["match_type"]]
 						rule.pattern = row["pattern"]
-						rule.amount_sign = (
-							int(row["amount_sign"])
-							if row["amount_sign"] in ("-1", "1", -1, 1)
-							else None
-						)
+						rule.amount_sign = {
+							"Аль ч дүн": None,
+							"Орлого (+)": 1,
+							"Зарлага (-)": -1,
+						}[row["amount_sign"]]
 						rule.category_id = category_id
 						rule.active = bool(row["active"])
 						if rule_id is None:
 							session.add(rule)
-					st.success("Rules saved.")
+					st.success("Дүрмүүдийг хадгаллаа.")
 					st.rerun()
 
 				with st.form("add-rule"):
-					priority = st.number_input("Priority", min_value=0, value=100, step=1)
-					field = st.selectbox("Field", ["description", "counterparty_account", "branch_code", "match_key"])
-					match_type = st.selectbox("Match type", ["equals", "contains", "regex"])
-					pattern = st.text_input("Pattern")
-					amount_sign_label = st.selectbox("Amount sign", ["Any", "Income (+)", "Expense (-)"])
-					category_label = st.selectbox("Category", list(category_ids))
-					active = st.checkbox("Active", value=True)
-					add_rule = st.form_submit_button("Add rule", icon=":material/add:")
+					priority = st.number_input("Эрэмбэ", min_value=0, value=100, step=1)
+					field_label = st.selectbox("Талбар", list(field_values))
+					match_label = st.selectbox("Нөхцөл", list(match_values))
+					pattern = st.text_input("Хайлтын утга")
+					amount_sign_label = st.selectbox("Дүнгийн төрөл", ["Аль ч дүн", "Орлого (+)", "Зарлага (-)"])
+					category_label = st.selectbox("Ангилал", list(category_ids))
+					active = st.checkbox("Идэвхтэй", value=True)
+					add_rule = st.form_submit_button("Дүрэм нэмэх", icon=":material/add:")
 				if add_rule:
 					if not pattern:
-						st.error("Enter a match pattern.")
+						st.error("Хайлтын утга оруулна уу.")
 					else:
-						sign = {"Any": None, "Income (+)": 1, "Expense (-)": -1}[amount_sign_label]
+						sign = {
+							"Аль ч дүн": None,
+							"Орлого (+)": 1,
+							"Зарлага (-)": -1,
+						}[amount_sign_label]
 						session.add(
 							Rule(
 								priority=int(priority),
-								field=field,
-								match_type=match_type,
+								field=field_values[field_label],
+								match_type=match_values[match_label],
 								pattern=pattern,
 								amount_sign=sign,
 								category_id=category_ids[category_label],
 								active=active,
 							)
 						)
-						st.success("Rule added.")
+						st.success("Дүрэм нэмлээ.")
 						rerun_requested = True
 
 				if rules:
 					preview_labels = {
-						f"{rule.id}: {rule.field} {rule.match_type} {rule.pattern}": rule
+						f"{rule.id}: {field_labels.get(rule.field, rule.field)} "
+						f"{match_labels.get(rule.match_type, rule.match_type)} {rule.pattern}": rule
 						for rule in rules
 					}
-					chosen = st.selectbox("Rule preview", list(preview_labels))
+					chosen = st.selectbox("Дүрмийг урьдчилан шалгах", list(preview_labels))
 					selected_rule = preview_labels[chosen]
 					preview = test_rule(
 						session,
@@ -286,24 +327,37 @@ if rules_tab.open:
 							"amount_sign": selected_rule.amount_sign,
 						},
 					)
-					st.caption(f"Would match {len(preview)} past transactions")
-					st.dataframe(preview, hide_index=True, alt="Transactions matched by the selected rule")
-				if st.button("Re-classify all", key="reclassify-all"):
+					preview = preview.rename(
+						columns={
+							"date": "Огноо",
+							"amount": "Дүн",
+							"description": "Гүйлгээний утга",
+							"counterparty_account": "Харилцагчийн данс",
+							"current category": "Одоогийн ангилал",
+						}
+					)
+					if "Одоогийн ангилал" in preview.columns:
+						preview["Одоогийн ангилал"] = preview["Одоогийн ангилал"].map(
+							_localize_category
+						)
+					st.caption(f"{len(preview)} өмнөх гүйлгээнд таарна")
+					st.dataframe(preview, hide_index=True, alt="Сонгосон дүрэмд таарах гүйлгээнүүд")
+				if st.button("Бүх гүйлгээг дахин ангилах", key="reclassify-all"):
 					classify_transactions(session, None)
-					st.success("Transactions reclassified; manual categories were preserved.")
+					st.success("Гүйлгээг дахин ангиллаа. Гараар ангилсан гүйлгээнд өөрчлөлт ороогүй.")
 					rerun_requested = True
 		except Exception as error:
-			st.error(f"Could not load rules: {error}")
+			st.error(f"Дүрмийг ачаалж чадсангүй: {error}")
 
 if backup_tab.open:
 	with backup_tab:
-		folder = st.text_input("Backup folder", value=str(Path.home() / "finance-backups"))
-		if st.button("Create backup", type="primary", icon=":material/backup:"):
+		folder = st.text_input("Нөөц файл хадгалах хавтас", value=str(Path.home() / "finance-backups"))
+		if st.button("Нөөцлөлт үүсгэх", type="primary", icon=":material/backup:"):
 			pg_dump = shutil.which("pg_dump")
 			if pg_dump is None:
-				st.error("pg_dump was not found on PATH. Install PostgreSQL client tools and try again.")
+				st.error("pg_dump PATH-д олдсонгүй. PostgreSQL-ийн клиент хэрэгслийг суулгана уу.")
 			elif not DATABASE_URL:
-				st.error("DATABASE_URL must be configured before creating a backup.")
+				st.error("Нөөцлөлт үүсгэхийн өмнө DATABASE_URL тохируулна уу.")
 			else:
 				try:
 					database_url = make_url(DATABASE_URL)
@@ -335,11 +389,11 @@ if backup_tab.open:
 						env=environment,
 					)
 					if result.returncode:
-						st.error(result.stderr.strip() or "pg_dump failed without an error message.")
+						st.error(result.stderr.strip() or "pg_dump алдааны мэдээлэлгүйгээр амжилтгүй боллоо.")
 					else:
-						st.success(f"Backup created: {output_path}")
+						st.success(f"Нөөц файл үүслээ: {output_path}")
 				except (OSError, ValueError) as error:
-					st.error(f"Could not create backup: {error}")
+					st.error(f"Нөөц файл үүсгэж чадсангүй: {error}")
 
 if rerun_requested:
 	st.rerun()

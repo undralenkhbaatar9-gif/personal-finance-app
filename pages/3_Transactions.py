@@ -7,17 +7,25 @@ from sqlalchemy import or_, select
 from finance.db import get_session
 from finance.models import Account, Category, Counterparty, Rule, Transaction
 
-st.title("Transactions")
+st.title("Бүх гүйлгээ")
 rerun_requested = False
 today = date.today()
+kind_labels = {"income": "Орлого", "expense": "Зарлага", "transfer": "Шилжүүлэг"}
+source_labels = {
+	"manual": "Гараар ангилсан",
+	"transfer": "Шилжүүлэг",
+	"counterparty": "Харилцагчийн тохиргоо",
+	"rule": "Дүрмээр ангилсан",
+	"unclassified": "Ангилаагүй",
+}
 with st.sidebar:
 	date_range = st.date_input(
-		"Date range",
+		"Огнооны хүрээ",
 		value=(today - timedelta(days=180), today),
 		key="transaction-date-range",
 	)
-	search_text = st.text_input("Search description or counterparty", type="search")
-	unclassified_only = st.checkbox("Unclassified only")
+	search_text = st.text_input("Гүйлгээний утга эсвэл харилцагчаар хайх", type="search")
+	unclassified_only = st.checkbox("Зөвхөн ангилаагүй")
 
 if isinstance(date_range, tuple) and len(date_range) == 2:
 	date_from, date_to = date_range
@@ -28,22 +36,22 @@ try:
 	with get_session() as session:
 		accounts = session.scalars(select(Account).order_by(Account.account_no)).all()
 		categories = session.scalars(select(Category).order_by(Category.kind, Category.name)).all()
-		account_options = {"All accounts": None}
+		account_options = {"Бүх данс": None}
 		account_options.update(
 			{
 				f"{account.nickname or account.account_no}": account.id
 				for account in accounts
 			}
 		)
-		category_options = {"All categories": None, "Unclassified": -1}
+		category_options = {"Бүх ангилал": None, "Ангилаагүй": -1}
 		category_options.update(
 			{
-				f"{category.kind}: {category.name}": category.id
+				f"{kind_labels.get(category.kind, category.kind)}: {category.name}": category.id
 				for category in categories
 			}
 		)
-		selected_account = st.sidebar.selectbox("Account", list(account_options))
-		selected_category = st.sidebar.selectbox("Category", list(category_options))
+		selected_account = st.sidebar.selectbox("Данс", list(account_options))
+		selected_category = st.sidebar.selectbox("Ангилал", list(category_options))
 
 		query = (
 			select(Transaction, Account, Category, Counterparty)
@@ -74,7 +82,8 @@ try:
 			query.order_by(Transaction.txn_datetime.desc()).limit(2000)
 		).all()
 		category_labels = {
-			category.id: f"{category.kind}: {category.name}" for category in categories
+			category.id: f"{kind_labels.get(category.kind, category.kind)}: {category.name}"
+			for category in categories
 		}
 		editor_rows = [
 			{
@@ -86,7 +95,7 @@ try:
 				"counterparty": cp.display_name if cp and cp.display_name else cp.match_key if cp else "",
 				"match_key": cp.match_key if cp else "",
 				"category": category_labels.get(txn.category_id, "Unclassified"),
-				"source": txn.category_source,
+				"source": source_labels.get(txn.category_source, txn.category_source),
 				"note": txn.note or "",
 				"make rule": False,
 			}
@@ -100,7 +109,7 @@ try:
 				"match_key", "category", "source", "note", "make rule",
 			],
 		)
-		category_labels_list = ["Unclassified"] + list(category_labels.values())
+		category_labels_list = ["Ангилаагүй"] + list(category_labels.values())
 
 		with st.form("transaction-editor"):
 			edited = st.data_editor(
@@ -111,17 +120,20 @@ try:
 				disabled=["txn_id", "date", "account", "amount", "description", "counterparty", "match_key", "source"],
 				column_config={
 					"txn_id": None,
-					"date": st.column_config.DatetimeColumn("Date"),
-					"amount": st.column_config.NumberColumn("Amount", format="%.2f ₮"),
-					"category": st.column_config.SelectboxColumn("Category", options=category_labels_list),
-					"source": st.column_config.TextColumn("Source"),
-					"note": st.column_config.TextColumn("Note"),
-					"make rule": st.column_config.CheckboxColumn("Make rule"),
+					"date": st.column_config.DatetimeColumn("Огноо"),
+					"account": st.column_config.TextColumn("Данс"),
+					"amount": st.column_config.NumberColumn("Дүн", format="%.2f ₮"),
+					"description": st.column_config.TextColumn("Гүйлгээний утга"),
+					"counterparty": st.column_config.TextColumn("Харилцагч"),
+					"category": st.column_config.SelectboxColumn("Ангилал", options=category_labels_list),
+					"source": st.column_config.TextColumn("Эх сурвалж"),
+					"note": st.column_config.TextColumn("Тэмдэглэл"),
+					"make rule": st.column_config.CheckboxColumn("Дүрэм үүсгэх"),
 					"match_key": None,
 				},
-				alt="Transactions with editable category, note, and rule action",
+				alt="Ангилал, тэмдэглэл засах болон дүрэм үүсгэх боломжтой гүйлгээнүүд",
 			)
-			submitted = st.form_submit_button("Save changes", type="primary")
+			submitted = st.form_submit_button("Өөрчлөлт хадгалах", type="primary")
 
 		if submitted:
 			saved = 0
@@ -167,10 +179,10 @@ try:
 							)
 						)
 						rules_added += 1
-			st.success(f"Saved {saved} transaction changes and created {rules_added} rules.")
+			st.success(f"{saved} гүйлгээний өөрчлөлтийг хадгалж, {rules_added} дүрэм үүсгэлээ.")
 			rerun_requested = True
 except Exception as error:
-	st.error(f"Could not load transactions: {error}")
+	st.error(f"Гүйлгээг ачаалж чадсангүй: {error}")
 
 if rerun_requested:
 	st.rerun()

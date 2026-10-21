@@ -8,8 +8,9 @@ from finance.classifier import classify_transactions
 from finance.db import get_session
 from finance.models import Category, Counterparty, Transaction
 
-st.title("Review counterparties")
+st.title("Гүйлгээ ангилах")
 rerun_requested = False
+kind_labels = {"income": "Орлого", "expense": "Зарлага", "transfer": "Шилжүүлэг"}
 
 try:
 	with get_session() as session:
@@ -17,9 +18,13 @@ try:
 		unclassified = session.scalars(
 			select(Transaction).where(Transaction.category_source == "unclassified")
 		).all()
-		category_options = [f"{category.kind}: {category.name}" for category in categories]
+		category_options = [
+			f"{kind_labels.get(category.kind, category.kind)}: {category.name}"
+			for category in categories
+		]
 		category_by_label = {
-			f"{category.kind}: {category.name}": category.id for category in categories
+			f"{kind_labels.get(category.kind, category.kind)}: {category.name}": category.id
+			for category in categories
 		}
 		counterparty_ids = {txn.counterparty_id for txn in unclassified if txn.counterparty_id}
 		counterparties = {
@@ -33,11 +38,11 @@ try:
 			if txn.counterparty_id is not None:
 				transactions_by_counterparty.setdefault(txn.counterparty_id, []).append(txn)
 
-		st.sidebar.metric("Unclassified transactions", len(unclassified))
+		st.sidebar.metric("Ангилаагүй гүйлгээ", len(unclassified))
 		if not unclassified:
-			st.success("All classified")
+			st.success("Бүх гүйлгээ ангилагдсан байна.")
 		elif not transactions_by_counterparty:
-			st.info("Unclassified transactions do not have a counterparty yet. Re-import or classify them after importing.")
+			st.info("Ангилаагүй гүйлгээнд харилцагч тодорхойгүй байна. Хуулгаа дахин импортлох эсвэл дараа нь ангилна уу.")
 		else:
 			records = []
 			for counterparty_id, transactions in transactions_by_counterparty.items():
@@ -47,7 +52,7 @@ try:
 				outgoing = sum((abs(txn.amount) for txn in transactions if txn.amount < 0), Decimal("0.00"))
 				selected_category = next(
 					(
-						f"{category.kind}: {category.name}"
+						f"{kind_labels.get(category.kind, category.kind)}: {category.name}"
 						for category in categories
 						if category.id == counterparty.default_category_id
 					),
@@ -85,21 +90,21 @@ try:
 					],
 					column_config={
 						"counterparty_id": None,
-						"match_key": st.column_config.TextColumn("Match key"),
-						"sample descriptions": st.column_config.TextColumn("Sample descriptions"),
-						"txns": st.column_config.NumberColumn("Transactions", format="%d"),
-						"in MNT": st.column_config.NumberColumn("In MNT", format="%.2f ₮"),
-						"out MNT": st.column_config.NumberColumn("Out MNT", format="%.2f ₮"),
-						"display_name": st.column_config.TextColumn("Display name"),
+						"match_key": st.column_config.TextColumn("Таних түлхүүр"),
+						"sample descriptions": st.column_config.TextColumn("Жишээ гүйлгээний утга"),
+						"txns": st.column_config.NumberColumn("Гүйлгээний тоо", format="%d"),
+						"in MNT": st.column_config.NumberColumn("Орлого (₮)", format="%.2f ₮"),
+						"out MNT": st.column_config.NumberColumn("Зарлага (₮)", format="%.2f ₮"),
+						"display_name": st.column_config.TextColumn("Харуулах нэр"),
 						"category": st.column_config.SelectboxColumn(
-							"Category", options=[""] + category_options
+							"Ангилал", options=[""] + category_options
 						),
-						"own account": st.column_config.CheckboxColumn("Own account"),
-						"ask per txn": st.column_config.CheckboxColumn("Ask per transaction"),
+						"own account": st.column_config.CheckboxColumn("Өөрийн данс"),
+						"ask per txn": st.column_config.CheckboxColumn("Гүйлгээ бүрээр асуух"),
 					},
-					alt="Unclassified counterparties and default category settings",
+					alt="Ангилаагүй харилцагчид болон үндсэн ангиллын тохиргоо",
 				)
-				submitted = st.form_submit_button("Save and classify", type="primary")
+				submitted = st.form_submit_button("Хадгалаад ангилах", type="primary")
 
 			if submitted:
 				changed_ids: list[int] = []
@@ -119,10 +124,10 @@ try:
 						).all()
 					)
 				classify_transactions(session, changed_ids)
-				st.success("Counterparties saved and transactions reclassified.")
+				st.success("Харилцагчдын тохиргоог хадгалж, гүйлгээг дахин ангиллаа.")
 				rerun_requested = True
 except Exception as error:
-	st.error(f"Could not load counterparties: {error}")
+	st.error(f"Харилцагчдыг ачаалж чадсангүй: {error}")
 
 if rerun_requested:
 	st.rerun()

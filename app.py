@@ -9,7 +9,7 @@ from finance.db import get_session
 from finance.models import Category, Transaction
 from finance.reports import expense_by_category, monthly_summary
 
-st.set_page_config(page_title="Finance", page_icon=":material/account_balance_wallet:", layout="wide")
+st.set_page_config(page_title="Санхүү", page_icon=":material/account_balance_wallet:", layout="wide")
 
 
 def dashboard() -> None:
@@ -56,33 +56,35 @@ def dashboard() -> None:
 
 		net = income - expense
 		with st.container(horizontal=True):
-			st.metric("Income (30 days)", f"{income:,.2f} ₮", border=True)
-			st.metric("Expenses (30 days)", f"{expense:,.2f} ₮", border=True)
-			st.metric("Net (30 days)", f"{net:,.2f} ₮", border=True)
-			st.metric("Needs review", f"{unclassified:,}", border=True)
+			st.metric("Орлого (Сүүлийн 30 день)", f"{income:,.2f} ₮", border=True)
+			st.metric("Зарлага (Сүүлийн 30 день)", f"{expense:,.2f} ₮", border=True)
+			st.metric("Цэвэр ашиг / Мөнгөн урсгал", f"{net:,.2f} ₮", border=True)
+			st.metric("Ангилах шаардлагатай", f"{unclassified:,}", border=True)
 
 		chart_column, category_column = st.columns(2, gap="large")
 		with chart_column:
-			st.subheader("Monthly cash flow")
+			st.subheader("Сар бүрийн мөнгөн урсгал")
 			if monthly.empty:
-				st.info("Import a statement to see monthly income and expenses.")
+				st.info("Сар бүрийн орлого, зарлагыг харахын тулд банкийн хуулгаа импортлоорой.")
 			else:
-				chart_data = monthly.copy()
+				chart_data = monthly.rename(
+					columns={"income": "Орлого", "expense": "Зарлага"}
+				)
 				chart = px.bar(
 					chart_data,
 					x="month",
-					y=["income", "expense"],
+					y=["Орлого", "Зарлага"],
 					barmode="group",
-					labels={"month": "Month", "value": "MNT", "variable": "Flow"},
-					color_discrete_map={"income": "#16876f", "expense": "#d2644b"},
+					labels={"month": "Сар", "value": "₮", "variable": "Орлого, зарлага"},
+					color_discrete_map={"Орлого": "#16876f", "Зарлага": "#d2644b"},
 				)
 				chart.update_layout(margin=dict(l=8, r=8, t=12, b=8), legend_title_text="")
-				st.plotly_chart(chart, alt="Monthly income and expense for the last six months")
+				st.plotly_chart(chart, alt="Сүүлийн зургаан сарын орлого ба зарлагын харьцуулалт")
 
 		with category_column:
-			st.subheader("Spending by category")
+			st.subheader("Ангиллаарх зарлага")
 			if category_expenses.empty:
-				st.info("No categorized expenses in the last six months.")
+				st.info("Сүүлийн 6 сард ангилагдсан зарлагын гүйлгээ одоогоор алга байна.")
 			else:
 				chart_data = category_expenses.head(8).copy()
 				chart = px.bar(
@@ -90,44 +92,47 @@ def dashboard() -> None:
 					x="amount",
 					y="category",
 					orientation="h",
-					labels={"amount": "MNT", "category": "Category"},
+					labels={"amount": "Дүн (₮)", "category": "Ангилал"},
 					color_discrete_sequence=["#4b7f73"],
 				)
 				chart.update_layout(margin=dict(l=8, r=8, t=12, b=8), yaxis_title="")
-				st.plotly_chart(chart, alt="Top spending categories over the last six months")
+				st.plotly_chart(chart, alt="Сүүлийн зургаан сарын зарлага ангиллаар")
 	except Exception as error:
-		st.error(f"Database unavailable: {error}", title="Check DATABASE_URL and initialize the database")
+		st.error(
+			f"Мэдээллийн сантай холбогдож чадсангүй. Тохиргоо болон сангийн эхлүүлэлтийг шалгана уу. ({error})",
+		title="Өгөгдлийн сангийн алдаа",
+		)
 
 
 page_dashboard = st.Page(
 	dashboard,
-	title="Dashboard",
+	title="Хянах самбар",
 	icon=":material/home:",
 	default=True,
 )
 page_import = st.Page(
 	"pages/1_Import.py",
-	title="Import statement",
+	title="Хуулга импортлох",
 	icon=":material/upload_file:",
 )
 page_review = st.Page(
 	"pages/2_Review.py",
-	title="Review transactions",
+	title="Гүйлгээ ангилах",
 	icon=":material/rule:",
 )
 page_txns = st.Page(
 	"pages/3_Transactions.py",
-	title="Transactions",
+	title="Бүх гүйлгээ",
 	icon=":material/list_alt:",
 )
 page_reports = st.Page(
 	"pages/4_Reports.py",
-	title="Reports",
+	title="Тайлан мэдээ",
 	icon=":material/monitoring:",
 )
 page_settings = st.Page(
 	"pages/5_Settings.py",
-	title="Settings",
+	title="Тохиргоо",
 	icon=":material/settings:",
 )
 

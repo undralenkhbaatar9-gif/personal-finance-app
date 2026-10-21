@@ -10,13 +10,30 @@ from finance.importer import DuplicateFileError, ValidationError, import_stateme
 from finance.models import Import
 from finance.parsers import PARSERS
 
-st.title("Import statement")
+
+def _validation_message(message: str) -> str:
+	translations = {
+		"balance_before and balance_after are required": "өмнөх болон дараах үлдэгдэл шаардлагатай",
+		"balance_before + amount does not equal balance_after": "өмнөх үлдэгдэл дээр гүйлгээний дүнг нэмэхэд дараах үлдэгдэлтэй тэнцэхгүй байна",
+		"balance_before does not match the previous row": "өмнөх үлдэгдэл нь өмнөх мөрийн дараах үлдэгдэлтэй таарахгүй байна",
+	}
+	for english, mongolian in translations.items():
+		if english in message:
+			return message.replace(english, mongolian).replace("Row ", "Мөр ")
+	if message.startswith("Statement total credit"):
+		return "Хуулгын нийт орлогын дүн мөрүүдийн орлогын нийлбэртэй таарахгүй байна."
+	if message.startswith("Statement total debit"):
+		return "Хуулгын нийт зарлагын дүн мөрүүдийн зарлагын нийлбэртэй таарахгүй байна."
+	return message.replace("Row ", "Мөр ")
+
+
+st.title("Хуулга импортлох")
 bank_code = st.selectbox(
-	"Bank",
+	"Банк",
 	options=list(PARSERS),
-	format_func=lambda code: PARSERS[code].name,
+	format_func=lambda code: "Хаан банк" if code == "khan" else PARSERS[code].name,
 )
-uploaded_file = st.file_uploader("Bank statement", type=["xlsx", "csv"])
+uploaded_file = st.file_uploader("Банкны хуулгаа сонгоно уу", type=["xlsx", "csv"])
 
 if uploaded_file is not None:
 	suffix = Path(uploaded_file.name).suffix.lower()
@@ -26,41 +43,41 @@ if uploaded_file is not None:
 		try:
 			info, transactions = PARSERS[bank_code].parse(temporary_path)
 			errors = validate(info, transactions)
-			st.subheader("Statement details")
+			st.subheader("Хуулгын мэдээлэл")
 			st.table(
 				{
-					"Account": info.account_no,
+					"Дансны дугаар": info.account_no,
 					"IBAN": info.iban or "",
-					"Currency": info.currency,
-					"Period from": info.period_from,
-					"Period to": info.period_to,
-					"Rows parsed": len(transactions),
-					"Credit total": f"{info.total_credit:,.2f} ₮" if info.total_credit is not None else "Not provided",
-					"Debit total": f"{info.total_debit:,.2f} ₮" if info.total_debit is not None else "Not provided",
+					"Валют": info.currency,
+					"Эхлэх огноо": info.period_from,
+					"Дуусах огноо": info.period_to,
+					"Уншсан гүйлгээ": len(transactions),
+					"Нийт орлого": f"{info.total_credit:,.2f} ₮" if info.total_credit is not None else "Мэдээлэл алга",
+					"Нийт зарлага": f"{info.total_debit:,.2f} ₮" if info.total_debit is not None else "Мэдээлэл алга",
 				},
-				alt="Statement account, period, and totals",
+				alt="Хуулгын данс, хугацаа болон нийт дүн",
 			)
 			preview = [
 				{
-					"Date": txn.txn_datetime,
-					"Amount": f"{txn.amount:,.2f} ₮",
-					"Balance before": f"{txn.balance_before:,.2f} ₮" if txn.balance_before is not None else "",
-					"Balance after": f"{txn.balance_after:,.2f} ₮" if txn.balance_after is not None else "",
-					"Description": txn.description,
-					"Counterparty account": txn.counterparty_account or "",
-					"Branch": txn.branch_code or "",
+					"Огноо": txn.txn_datetime,
+					"Дүн": f"{txn.amount:,.2f} ₮",
+					"Өмнөх үлдэгдэл": f"{txn.balance_before:,.2f} ₮" if txn.balance_before is not None else "",
+					"Дараах үлдэгдэл": f"{txn.balance_after:,.2f} ₮" if txn.balance_after is not None else "",
+					"Гүйлгээний утга": txn.description,
+					"Харилцагчийн данс": txn.counterparty_account or "",
+					"Салбарын код": txn.branch_code or "",
 				}
 				for txn in transactions[:20]
 			]
-			st.subheader("Transaction preview")
-			st.dataframe(preview, hide_index=True, alt="First 20 transactions from the selected statement")
+			st.subheader("Гүйлгээний урьдчилсан харагдац")
+			st.dataframe(preview, hide_index=True, alt="Хуулгын эхний 20 гүйлгээ")
 			if errors:
-				st.error("The statement failed validation")
+				st.error("Хуулгын шалгалт амжилтгүй боллоо")
 				for message in errors:
-					st.write(f"- {message}")
+					st.write(f"- {_validation_message(message)}")
 			else:
-				st.success("Balance chain and statement totals are valid")
-				if st.button("Confirm import", type="primary", disabled=bool(errors)):
+				st.success("Үлдэгдлийн дараалал болон хуулгын нийлбэр зөв байна")
+				if st.button("Импорт баталгаажуулах", type="primary", disabled=bool(errors)):
 					try:
 						result = import_statement(
 							temporary_path,
@@ -68,18 +85,20 @@ if uploaded_file is not None:
 							bank_code,
 						)
 						st.success(
-							f"Imported {result.rows_new} new transactions; "
-							f"{result.rows_duplicate} duplicates skipped."
+							f"{result.rows_new} шинэ гүйлгээг импортолж, "
+							f"{result.rows_duplicate} давхардлыг алгаслаа."
 						)
-						st.page_link("pages/2_Review.py", label="Review unclassified transactions", icon=":material/rule:")
+						st.page_link("pages/2_Review.py", label="Ангилаагүй гүйлгээг ангилах", icon=":material/rule:")
 					except DuplicateFileError as error:
-						st.warning(str(error))
+						st.warning(f"Энэ хуулгыг өмнө нь импортолсон байна: {uploaded_file.name}")
 					except ValidationError as error:
-						st.error(str(error))
+						st.error("Хуулгын шалгалт амжилтгүй боллоо.")
+						for message in error.errors:
+							st.write(f"- {_validation_message(message)}")
 		except Exception as error:
-			st.error(f"Could not parse this statement: {error}")
+			st.error(f"Хуулгыг уншиж чадсангүй: {error}")
 
-st.subheader("Past imports")
+st.subheader("Өмнөх импортууд")
 try:
 	with get_session() as session:
 		imports = session.scalars(
@@ -88,18 +107,18 @@ try:
 		st.dataframe(
 			[
 				{
-					"File": item.file_name,
-					"Imported": item.imported_at,
-					"Period from": item.period_from,
-					"Period to": item.period_to,
-					"Read": item.rows_read,
-					"New": item.rows_new,
-					"Duplicates": item.rows_duplicate,
+					"Файл": item.file_name,
+					"Импортолсон огноо": item.imported_at,
+					"Эхлэх огноо": item.period_from,
+					"Дуусах огноо": item.period_to,
+					"Уншсан": item.rows_read,
+					"Шинэ": item.rows_new,
+					"Давхардсан": item.rows_duplicate,
 				}
 				for item in imports
 			],
 			hide_index=True,
-			alt="Recently imported statements",
+			alt="Сүүлд импортолсон банкны хуулгууд",
 		)
 except Exception as error:
-	st.info(f"Import history is unavailable: {error}")
+	st.info(f"Импортын түүхийг харуулах боломжгүй байна: {error}")

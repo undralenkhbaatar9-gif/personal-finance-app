@@ -15,16 +15,16 @@ from finance.reports import (
 	unclassified_total,
 )
 
-st.title("Reports")
+st.title("Тайлан мэдээ")
 today = date.today()
 with st.sidebar:
 	date_range = st.date_input(
-		"Date range",
+		"Хугацааны хүрээ",
 		value=(today - timedelta(days=180), today),
 		key="reports-date-range",
 	)
-	include_transfers = st.toggle("Include transfers")
-	include_unclassified = st.toggle("Include unclassified in downloads")
+	include_transfers = st.toggle("Шилжүүлгийг оруулах")
+	include_unclassified = st.toggle("Ангилаагүй гүйлгээг татах файлд оруулах")
 
 if isinstance(date_range, tuple) and len(date_range) == 2:
 	date_from, date_to = date_range
@@ -44,63 +44,112 @@ try:
 			include_unclassified,
 		)
 		unclassified = unclassified_total(session, date_from, date_to)
+	export = export.rename(
+		columns={
+			"id": "Гүйлгээний дугаар",
+			"date": "Огноо",
+			"amount": "Дүн",
+			"description": "Гүйлгээний утга",
+			"note": "Тэмдэглэл",
+			"category_source": "Ангилсан арга",
+			"category_id": "Ангиллын дугаар",
+			"kind": "Ангиллын төрөл",
+			"category": "Ангилал",
+			"counterparty": "Харилцагч",
+			"match_key": "Таних түлхүүр",
+			"account": "Дансны нэр",
+			"account_no": "Дансны дугаар",
+		}
+	)
+	if "Ангиллын төрөл" in export.columns:
+		export["Ангиллын төрөл"] = export["Ангиллын төрөл"].map(
+			{"income": "Орлого", "expense": "Зарлага", "transfer": "Шилжүүлэг"}
+		)
+	if "Ангилсан арга" in export.columns:
+		export["Ангилсан арга"] = export["Ангилсан арга"].map(
+			{
+				"manual": "Гараар ангилсан",
+				"transfer": "Шилжүүлэг",
+				"counterparty": "Харилцагчийн тохиргоо",
+				"rule": "Дүрмээр ангилсан",
+				"unclassified": "Ангилаагүй",
+			}
+		)
 
 	income_total = sum(monthly["income"], Decimal("0.00")) if not monthly.empty else Decimal("0.00")
 	expense_total = sum(monthly["expense"], Decimal("0.00")) if not monthly.empty else Decimal("0.00")
 	net_total = income_total - expense_total
 	savings_rate = (net_total / income_total * 100) if income_total else Decimal("0.00")
 	with st.container(horizontal=True):
-		st.metric("Income", f"{income_total:,.2f} ₮")
-		st.metric("Expense", f"{expense_total:,.2f} ₮")
-		st.metric("Net", f"{net_total:,.2f} ₮")
-		st.metric("Savings rate", f"{savings_rate:.1f}%")
+		st.metric("Орлого", f"{income_total:,.2f} ₮")
+		st.metric("Зарлага", f"{expense_total:,.2f} ₮")
+		st.metric("Цэвэр мөнгөн урсгал", f"{net_total:,.2f} ₮")
+		st.metric("Хуримтлалын хувь", f"{savings_rate:.1f}%")
 	if unclassified:
-		st.warning(f"Unclassified transactions total {unclassified:,.2f} ₮ in this date range.")
+		st.warning(f"Энэ хугацаанд ангилаагүй гүйлгээний нийт дүн {unclassified:,.2f} ₮ байна.")
 
-	st.subheader("Monthly income and expense")
+	st.subheader("Сар бүрийн орлого ба зарлага")
 	if monthly.empty:
-		st.info("No classified income or expenses in this date range.")
+		st.info("Энэ хугацаанд ангилсан орлого, зарлагын гүйлгээ алга байна.")
 	else:
 		chart_data = monthly.melt(
 			id_vars="month", value_vars=["income", "expense"],
 			var_name="type", value_name="amount",
 		)
+		chart_data["type"] = chart_data["type"].map({"income": "Орлого", "expense": "Зарлага"})
 		chart_data["amount"] = chart_data["amount"].map(float)
-		chart = px.bar(chart_data, x="month", y="amount", color="type", barmode="group")
-		st.plotly_chart(chart, alt="Monthly income compared with expenses")
+		chart = px.bar(
+			chart_data,
+			x="month",
+			y="amount",
+			color="type",
+			barmode="group",
+			labels={"month": "Сар", "amount": "Дүн (₮)", "type": "Гүйлгээний төрөл"},
+		)
+		st.plotly_chart(chart, alt="Сар бүрийн орлого ба зарлагын харьцуулалт")
 
-	st.subheader("Expenses by category")
+	st.subheader("Ангиллаарх зарлага")
 	if expenses.empty:
-		st.info("No categorized expenses in this date range.")
+		st.info("Энэ хугацаанд ангилсан зарлагын гүйлгээ алга байна.")
 	else:
 		expense_chart = expenses.copy()
 		expense_chart["amount"] = expense_chart["amount"].map(float)
-		chart = px.bar(expense_chart, x="amount", y="category", orientation="h")
-		st.plotly_chart(chart, alt="Expenses grouped by category")
+		chart = px.bar(
+			expense_chart,
+			x="amount",
+			y="category",
+			orientation="h",
+			labels={"amount": "Дүн (₮)", "category": "Ангилал"},
+		)
+		st.plotly_chart(chart, alt="Ангилал тус бүрийн зарлагын дүн")
 		st.dataframe(
-			expenses.assign(amount=expenses["amount"].map(lambda amount: f"{amount:,.2f} ₮")),
+			expenses.rename(columns={"category": "Ангилал", "amount": "Дүн"}).assign(
+				Дүн=expenses["amount"].map(lambda amount: f"{amount:,.2f} ₮")
+			),
 			hide_index=True,
-			alt="Expense totals by category",
+			alt="Ангилал тус бүрийн зарлагын нийлбэр",
 		)
 
-	st.subheader("Top counterparties")
+	st.subheader("Их дүнтэй харилцагчид")
 	st.dataframe(
-		counterparties.assign(amount=counterparties["amount"].map(lambda amount: f"{amount:,.2f} ₮")),
+		counterparties.rename(columns={"counterparty": "Харилцагч", "amount": "Дүн"}).assign(
+			Дүн=counterparties["amount"].map(lambda amount: f"{amount:,.2f} ₮")
+		),
 		hide_index=True,
-		alt="Top counterparties by transaction amount",
+		alt="Гүйлгээний дүнгээр эрэмбэлсэн харилцагчид",
 	)
 
 	csv_data = export.to_csv(index=False).encode("utf-8-sig")
 	xlsx_buffer = BytesIO()
 	with pd.ExcelWriter(xlsx_buffer, engine="openpyxl") as writer:
-		export.to_excel(writer, index=False, sheet_name="Transactions")
+		export.to_excel(writer, index=False, sheet_name="Гүйлгээнүүд")
 	with st.container(horizontal=True):
-		st.download_button("Download CSV", csv_data, "transactions.csv", mime="text/csv")
+		st.download_button("CSV татах", csv_data, "гүйлгээ.csv", mime="text/csv")
 		st.download_button(
-			"Download XLSX",
+			"Excel файл татах",
 			xlsx_buffer.getvalue(),
-			"transactions.xlsx",
+			"гүйлгээ.xlsx",
 			mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 		)
 except Exception as error:
-	st.error(f"Could not load reports: {error}")
+	st.error(f"Тайланг ачаалж чадсангүй: {error}")
