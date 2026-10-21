@@ -1,6 +1,5 @@
 from datetime import date, timedelta
 from decimal import Decimal
-from pathlib import Path
 
 import plotly.express as px
 import streamlit as st
@@ -14,12 +13,11 @@ st.set_page_config(page_title="Finance", page_icon=":material/account_balance_wa
 st.title("Хувийн санхүү")
 st.caption("Банкны хуулгаа импортолж, ангилж, тайлангаа хянаарай.")
 
-PAGES_DIR = Path(__file__).resolve().parent / "pages"
 navigation = st.columns(4, vertical_alignment="center")
-navigation[0].page_link(PAGES_DIR / "1_Import.py", label="Import statement", icon=":material/upload_file:")
-navigation[1].page_link(PAGES_DIR / "2_Review.py", label="Review transactions", icon=":material/rule:")
-navigation[2].page_link(PAGES_DIR / "3_Transactions.py", label="Transactions", icon=":material/list_alt:")
-navigation[3].page_link(PAGES_DIR / "4_Reports.py", label="Reports", icon=":material/monitoring:")
+navigation[0].page_link("pages/1_Import.py", label="Import statement", icon=":material/upload_file:")
+navigation[1].page_link("pages/2_Review.py", label="Review transactions", icon=":material/rule:")
+navigation[2].page_link("pages/3_Transactions.py", label="Transactions", icon=":material/list_alt:")
+navigation[3].page_link("pages/4_Reports.py", label="Reports", icon=":material/monitoring:")
 
 today = date.today()
 month_start = today - timedelta(days=179)
