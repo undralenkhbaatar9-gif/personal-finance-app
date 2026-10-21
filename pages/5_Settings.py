@@ -11,12 +11,38 @@ from sqlalchemy.engine import make_url
 
 from finance.classifier import classify_transactions, test_rule
 from finance.config import DATABASE_URL
+from finance.demo import load_demo_data
 from finance.db import get_session
 from finance.models import Account, Category, Counterparty, Rule, Transaction
 from finance.ui import apply_global_styles, render_footer
 
 apply_global_styles()
 st.title("Тохиргоо")
+
+
+def _persist_theme_mode() -> None:
+	st.session_state["finance_theme_mode"] = st.session_state["finance_theme_mode_selector"]
+
+
+st.session_state.setdefault("finance_theme_mode", "Харанхуй")
+st.sidebar.segmented_control(
+	"Өнгөний загвар",
+	options=["Харанхуй", "Гэгээлэг"],
+	default=st.session_state["finance_theme_mode"],
+	key="finance_theme_mode_selector",
+	on_change=_persist_theme_mode,
+)
+if st.sidebar.button("Туршилтын өгөгдөл оруулах", icon=":material/science:"):
+	try:
+		with st.spinner("Туршилтын гүйлгээг ачаалж байна..."):
+			added_demo_rows = load_demo_data()
+		if added_demo_rows:
+			st.toast(f"{added_demo_rows} туршилтын гүйлгээ нэмэгдлээ.")
+			st.sidebar.success(f"{added_demo_rows} туршилтын гүйлгээ нэмэгдлээ.")
+		else:
+			st.sidebar.info("Туршилтын өгөгдөл өмнө нь ачаалагдсан байна.")
+	except Exception as error:
+		st.sidebar.error("Туршилтын өгөгдөл ачаалж чадсангүй. Өгөгдлийн санг шалгана уу.")
 rerun_requested = False
 success_messages: list[str] = []
 kind_labels = {"income": "Орлого", "expense": "Зарлага", "transfer": "Шилжүүлэг"}

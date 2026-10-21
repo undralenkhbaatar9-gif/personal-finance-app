@@ -1,12 +1,14 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from io import BytesIO
 
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+from sqlalchemy import func, select
 
 from finance.db import get_session
+from finance.models import Budget, Category, Transaction
 from finance.reports import (
 	expense_by_category,
 	monthly_summary,
@@ -19,6 +21,12 @@ from finance.ui import apply_global_styles, render_footer, style_plotly_chart
 apply_global_styles()
 st.title("Тайлан мэдээ")
 today = date.today()
+budget_start = today.replace(day=1)
+budget_end = (
+	date(budget_start.year + 1, 1, 1)
+	if budget_start.month == 12
+	else date(budget_start.year, budget_start.month + 1, 1)
+)
 with st.sidebar:
 	date_range = st.date_input(
 		"Хугацааны хүрээ",
@@ -47,6 +55,40 @@ try:
 				include_unclassified,
 			)
 			unclassified = unclassified_total(session, date_from, date_to)
+			budget_categories = session.scalars(
+				select(Category).where(Category.kind == "expense").order_by(Category.name)
+			).all()
+			budgets = session.scalars(select(Budget)).all()
+			budget_category_ids = [category.id for category in budget_categories]
+			spending_rows = session.execute(
+				select(Transaction.category_id, func.sum(func.abs(Transaction.amount)))
+				.where(
+					Transaction.category_id.in_(budget_category_ids or [-1]),
+					Transaction.amount < 0,
+					Transaction.txn_datetime >= budget_start,
+					Transaction.txn_datetime < budget_end,
+				)
+				.group_by(Transaction.category_id)
+			).all()
+			budget_by_category = {
+				budget.category_id: budget.monthly_limit for budget in budgets
+			}
+			spent_by_category = {
+				category_id: amount or Decimal("0.00")
+				for category_id, amount in spending_rows
+			}
+			budget_frame = pd.DataFrame(
+				[
+					{
+						"category_id": category.id,
+						"category": category.name,
+						"monthly_limit": budget_by_category.get(category.id, Decimal("0.00")),
+						"spent": spent_by_category.get(category.id, Decimal("0.00")),
+					}
+					for category in budget_categories
+				],
+				columns=["category_id", "category", "monthly_limit", "spent"],
+			)
 	export = export.rename(
 		columns={
 			"id": "Гүйлгээний дугаар",
@@ -90,6 +132,65 @@ try:
 		st.metric("Хуримтлалын хувь", f"{savings_rate:.1f}%")
 	if unclassified:
 		st.warning(f"Энэ хугацаанд ангилаагүй гүйлгээний нийт дүн {unclassified:,.2f} ₮ байна.")
+
+	st.subheader("Сарын төсөв ба ахиц")
+	st.caption(f"{today.year} оны {today.month}-р сарын зарлагын төсвөө ангилал тус бүрээр тохируулна уу.")
+	with st.form("monthly-budget-form"):
+		edited_budgets = st.data_editor(
+			budget_frame,
+			key="monthly-budget-editor",
+			hide_index=True,
+			disabled=["category_id", "category", "spent"],
+			column_config={
+				"category_id": None,
+				"category": st.column_config.TextColumn("Ангилал"),
+				"monthly_limit": st.column_config.NumberColumn(
+					"Сарын төсөв (₮)", min_value=0.0, step=10000.0, format="%.2f ₮"
+				),
+				"spent": st.column_config.NumberColumn("Энэ сард зарцуулсан (₮)", format="%.2f ₮"),
+			},
+			alt="Ангилал бүрийн сарын төсөв болон тухайн сарын зарлага",
+		)
+		budget_submitted = st.form_submit_button("Төсөв хадгалах", type="primary")
+	if budget_submitted:
+		with st.spinner("Сарын төсвийг хадгалж байна..."):
+			with get_session() as session:
+				for row in edited_budgets.to_dict("records"):
+					category_id = int(row["category_id"])
+					limit_value = Decimal(str(row["monthly_limit"] or 0)).quantize(Decimal("0.01"))
+					budget = session.scalar(
+						select(Budget).where(Budget.category_id == category_id)
+					)
+					if limit_value > 0:
+						if budget is None:
+							session.add(Budget(category_id=category_id, monthly_limit=limit_value))
+						else:
+							budget.monthly_limit = limit_value
+					elif budget is not None:
+						session.delete(budget)
+		st.toast("Сарын төсвийг амжилттай хадгаллаа.")
+		budget_frame = edited_budgets.copy()
+
+	configured_budgets = budget_frame[budget_frame["monthly_limit"] > 0]
+	if configured_budgets.empty:
+		st.info("Ангиллын сарын төсөв хараахан тохируулаагүй байна.")
+	else:
+		for budget_row in configured_budgets.to_dict("records"):
+			limit_value = Decimal(str(budget_row["monthly_limit"]))
+			spent_value = Decimal(str(budget_row["spent"]))
+			usage_percent = spent_value / limit_value * Decimal("100")
+			with st.container(border=True):
+				st.markdown(f"**{budget_row['category']}**")
+				st.progress(
+					min(float(usage_percent / Decimal("100")), 1.0),
+					text=f"{spent_value:,.2f} ₮ / {limit_value:,.2f} ₮ · {usage_percent:.0f}%",
+				)
+				if usage_percent > 100:
+					st.error("Төсвийн хязгаарыг давлаа.")
+				elif usage_percent >= 80:
+					st.warning("Төсвийн 80 хувьд хүрсэн байна.")
+				else:
+					st.success("Төсвийн зарцуулалт хэвийн байна.")
 
 	st.subheader("Сар бүрийн орлого ба зарлага")
 	if monthly.empty:

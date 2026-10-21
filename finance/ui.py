@@ -625,6 +625,419 @@ def apply_global_styles() -> None:
 		""",
 		unsafe_allow_html=True,
 	)
+	if st.session_state.get("finance_theme_mode") == "Гэгээлэг":
+		st.markdown(
+			"""
+			<style>
+			:root {
+				color-scheme: light;
+				--finance-ink: #202344;
+				--finance-muted: #5e6680;
+				--finance-border: rgba(75, 80, 134, 0.17);
+			}
+
+			[data-testid="stAppViewContainer"] {
+				background: linear-gradient(135deg, #f2f3ff 0%, #edf2fb 54%, #e9f8f4 100%);
+				color: #202344;
+			}
+
+			[data-testid="stHeader"] {
+				background: rgba(242, 243, 255, 0.78);
+			}
+
+			[data-testid="stSidebar"] {
+				border-right-color: rgba(75, 80, 134, 0.15);
+				background: linear-gradient(165deg, #f0efff 0%, #eaebf7 58%, #e7f7f2 100%);
+				box-shadow: 12px 0 36px rgba(56, 58, 100, 0.08);
+			}
+
+			[data-testid="stSidebar"] [data-testid="stMarkdownContainer"],
+			[data-testid="stSidebar"] [data-testid="stPageLink"] a {
+				color: #282943;
+			}
+
+			[data-testid="stSidebar"] [data-testid="stPageLink"] a {
+				border-color: rgba(75, 80, 134, 0.13);
+				background: rgba(255, 255, 255, 0.45);
+			}
+
+			[data-testid="stSidebar"] [data-testid="stPageLink"] a:hover {
+				background: linear-gradient(100deg, rgba(121, 99, 223, 0.18), rgba(54, 190, 170, 0.16));
+				color: #202344;
+			}
+
+			.main h1, .main h2, .main h3 {
+				color: #202344;
+			}
+
+			.main [data-testid="stCaptionContainer"] {
+				color: #5e6680;
+			}
+
+			[data-testid="stHorizontalBlock"]:has([data-testid="stMetric"]) [data-testid="stMetric"] {
+				border-color: rgba(75, 80, 134, 0.16);
+				background: linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(239, 240, 252, 0.74));
+				box-shadow: 0 16px 36px rgba(55, 58, 96, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+			}
+
+			[data-testid="stHorizontalBlock"]:has([data-testid="stMetric"]) [data-testid="stColumn"]:nth-child(1) [data-testid="stMetric"] {
+				background: linear-gradient(145deg, rgba(255, 255, 255, 0.97), rgba(235, 232, 255, 0.88));
+			}
+
+			[data-testid="stHorizontalBlock"]:has([data-testid="stMetric"]) [data-testid="stColumn"]:nth-child(2) [data-testid="stMetric"] {
+				background: linear-gradient(145deg, rgba(255, 255, 255, 0.97), rgba(255, 235, 241, 0.88));
+			}
+
+			[data-testid="stHorizontalBlock"]:has([data-testid="stMetric"]) [data-testid="stColumn"]:nth-child(3) [data-testid="stMetric"] {
+				background: linear-gradient(145deg, rgba(255, 255, 255, 0.97), rgba(229, 249, 244, 0.88));
+			}
+
+			[data-testid="stHorizontalBlock"]:has([data-testid="stMetric"]) [data-testid="stColumn"]:nth-child(4) [data-testid="stMetric"] {
+				background: linear-gradient(145deg, rgba(255, 255, 255, 0.97), rgba(246, 235, 255, 0.88));
+			}
+
+			[data-testid="stMetricLabel"] {
+				color: #4e5672;
+			}
+
+			[data-testid="stMetricValue"] {
+				color: #202344;
+			}
+
+			.st-key-finance-dashboard-kpis [data-testid="stMetric"]::after {
+				background: rgba(121, 99, 223, 0.12);
+				color: #493da7;
+			}
+
+			.st-key-finance-dashboard-kpis [data-testid="stColumn"]:nth-child(2) [data-testid="stMetric"]::after {
+				background: rgba(255, 120, 155, 0.15);
+				color: #9a3858;
+			}
+
+			.st-key-finance-dashboard-kpis [data-testid="stColumn"]:nth-child(3) [data-testid="stMetric"]::after {
+				background: rgba(54, 190, 170, 0.16);
+				color: #146d61;
+			}
+
+			.st-key-finance-dashboard-kpis [data-testid="stColumn"]:nth-child(4) [data-testid="stMetric"]::after {
+				background: rgba(189, 140, 255, 0.16);
+				color: #69429c;
+			}
+
+			[data-testid="stPlotlyChart"],
+			[data-testid="stDataFrame"],
+			[data-testid="stDataEditor"],
+			[data-testid="stTable"],
+			[data-testid="stForm"],
+			[data-testid="stVerticalBlockBorderWrapper"] {
+				border-color: rgba(75, 80, 134, 0.16);
+				background: linear-gradient(145deg, rgba(255, 255, 255, 0.84), rgba(239, 241, 250, 0.74));
+				box-shadow: 0 16px 36px rgba(55, 58, 96, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+			}
+
+			[data-testid="stTextInput"] input,
+			[data-testid="stNumberInput"] input,
+			[data-testid="stDateInput"] input,
+			[data-testid="stTextArea"] textarea,
+			[data-testid="stTimeInput"] input,
+			[data-baseweb="select"] > div {
+				border-color: rgba(75, 80, 134, 0.22);
+				background: rgba(255, 255, 255, 0.88);
+				color: #202344;
+			}
+
+			[data-testid="stTextInput"] input,
+			[data-testid="stNumberInput"] input,
+			[data-testid="stDateInput"] input,
+			[data-testid="stTextArea"] textarea,
+			[data-testid="stTimeInput"] input {
+				color: #202344 !important;
+			}
+
+			[data-testid="stTextInput"] input::placeholder,
+			[data-testid="stNumberInput"] input::placeholder,
+			[data-testid="stTextArea"] textarea::placeholder {
+				color: #6a7089 !important;
+			}
+
+			[data-baseweb="popover"] [role="listbox"],
+			[data-baseweb="menu"],
+			[data-baseweb="popover"] [role="option"] {
+				border-color: rgba(75, 80, 134, 0.18);
+				background: #ffffff;
+				color: #202344;
+			}
+
+			[data-baseweb="popover"] [role="option"]:hover,
+			[data-baseweb="popover"] [aria-selected="true"] {
+				background: linear-gradient(100deg, rgba(121, 99, 223, 0.16), rgba(54, 190, 170, 0.14));
+				color: #202344;
+			}
+
+			label, [data-testid="stWidgetLabel"] p,
+			[data-testid="stCheckbox"] label,
+			[data-testid="stRadio"] label,
+			[data-testid="stToggle"] label {
+				color: #343650;
+			}
+
+			[data-testid="stFileUploaderDropzone"] {
+				border-color: rgba(98, 83, 196, 0.32);
+				background: rgba(255, 255, 255, 0.8);
+			}
+
+			[data-testid="stFileUploaderDropzoneInstructions"]::before {
+				color: #292747;
+			}
+
+			[data-testid="stFileUploaderDropzoneInstructions"]::after {
+				color: #5f6680;
+			}
+
+			[data-testid="stTable"] th {
+				background: rgba(228, 226, 248, 0.96);
+				color: #252642;
+			}
+
+			[data-testid="stTable"] td {
+				background: rgba(255, 255, 255, 0.9);
+				color: #292b43;
+			}
+
+			[data-testid="stDataFrame"],
+			[data-testid="stDataEditor"] {
+				--gdg-bg-cell: rgba(255, 255, 255, 0.97);
+				--gdg-bg-cell-medium: rgba(245, 245, 252, 0.99);
+				--gdg-bg-header: rgba(229, 227, 249, 0.99);
+				--gdg-bg-header-has-focus: rgba(207, 200, 248, 0.99);
+				--gdg-bg-header-hovered: rgba(218, 215, 246, 0.99);
+				--gdg-text-dark: #202344;
+				--gdg-text-medium: #424862;
+				--gdg-text-light: #626982;
+				--gdg-text-header: #252642;
+				--gdg-text-header-selected: #252642;
+				--gdg-border-color: rgba(83, 87, 143, 0.16);
+				--gdg-accent-color: #6557e8;
+			}
+
+			[data-testid="stAlert"],
+			[data-testid="stToast"] {
+				border-color: rgba(83, 87, 143, 0.17);
+				background: rgba(255, 255, 255, 0.9);
+				color: #252642;
+			}
+
+			[data-testid="stAlert"] p,
+			[data-testid="stToast"] p {
+				color: #252642;
+			}
+
+			.finance-footer {
+				border-color: rgba(83, 87, 143, 0.16);
+				color: #666d86;
+			}
+			</style>
+			""",
+			unsafe_allow_html=True,
+		)
+	if st.session_state.get("finance_theme_mode") == "Гэгээлэг":
+		st.markdown(
+			"""
+			<style>
+			:root {
+				color-scheme: light;
+				--finance-ink: #202344;
+				--finance-muted: #646b85;
+				--finance-border: rgba(80, 82, 138, 0.16);
+			}
+
+			[data-testid="stAppViewContainer"] {
+				background-color: #f7f8ff;
+				background-image: linear-gradient(135deg, #f6f7ff 0%, #f2f5fb 52%, #edf8f5 100%);
+				color: #202344;
+			}
+
+			[data-testid="stHeader"] {
+				background: rgba(247, 248, 255, 0.8);
+			}
+
+			[data-testid="stSidebar"] {
+				border-right: 1px solid rgba(86, 82, 155, 0.14);
+				background: linear-gradient(165deg, #f4f3ff 0%, #eeeffa 58%, #eaf8f5 100%);
+				box-shadow: 12px 0 40px rgba(56, 58, 100, 0.08);
+			}
+
+			[data-testid="stSidebar"] [data-testid="stMarkdownContainer"],
+			[data-testid="stSidebar"] [data-testid="stPageLink"] a {
+				color: #292747;
+			}
+
+			[data-testid="stSidebar"] [data-testid="stPageLink"] a {
+				border-color: rgba(86, 82, 155, 0.12);
+				background: rgba(255, 255, 255, 0.48);
+			}
+
+			.main h1, .main h2, .main h3 {
+				color: #202344;
+			}
+
+			.main [data-testid="stCaptionContainer"] {
+				color: #646b85;
+			}
+
+			[data-testid="stHorizontalBlock"]:has([data-testid="stMetric"]) [data-testid="stMetric"] {
+				border-color: rgba(84, 87, 143, 0.15);
+				background: linear-gradient(145deg, rgba(255, 255, 255, 0.84), rgba(241, 242, 253, 0.74));
+				box-shadow: 0 16px 38px rgba(47, 51, 91, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+				backdrop-filter: blur(12px);
+				-webkit-backdrop-filter: blur(12px);
+			}
+
+			[data-testid="stHorizontalBlock"]:has([data-testid="stMetric"]) [data-testid="stColumn"]:nth-child(1) [data-testid="stMetric"] {
+				background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(237, 234, 255, 0.86));
+			}
+
+			[data-testid="stHorizontalBlock"]:has([data-testid="stMetric"]) [data-testid="stColumn"]:nth-child(2) [data-testid="stMetric"] {
+				background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(255, 237, 242, 0.86));
+			}
+
+			[data-testid="stHorizontalBlock"]:has([data-testid="stMetric"]) [data-testid="stColumn"]:nth-child(3) [data-testid="stMetric"] {
+				background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(231, 249, 246, 0.86));
+			}
+
+			[data-testid="stHorizontalBlock"]:has([data-testid="stMetric"]) [data-testid="stColumn"]:nth-child(4) [data-testid="stMetric"] {
+				background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(246, 238, 255, 0.86));
+			}
+
+			[data-testid="stMetricLabel"] {
+				color: #535a75;
+			}
+
+			[data-testid="stMetricValue"] {
+				color: #202344;
+				text-shadow: 0 0 18px rgba(114, 99, 223, 0.12);
+			}
+
+			[data-testid="stPlotlyChart"],
+			[data-testid="stDataFrame"],
+			[data-testid="stDataEditor"],
+			[data-testid="stTable"],
+			[data-testid="stForm"],
+			[data-testid="stVerticalBlockBorderWrapper"] {
+				border-color: rgba(83, 87, 143, 0.15);
+				background: linear-gradient(145deg, rgba(255, 255, 255, 0.82), rgba(239, 241, 250, 0.72));
+				box-shadow: 0 16px 38px rgba(47, 51, 91, 0.085), inset 0 1px 0 rgba(255, 255, 255, 0.94);
+			}
+
+			[data-testid="stPlotlyChart"] {
+				background: rgba(247, 248, 255, 0.7);
+			}
+
+			[data-testid="stTextInput"] input,
+			[data-testid="stNumberInput"] input,
+			[data-testid="stDateInput"] input,
+			[data-testid="stTextArea"] textarea,
+			[data-testid="stTimeInput"] input,
+			[data-baseweb="select"] > div {
+				border-color: rgba(83, 87, 143, 0.2);
+				background: rgba(255, 255, 255, 0.82);
+				color: #202344;
+				box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95);
+			}
+
+			[data-testid="stTextInput"] input,
+			[data-testid="stNumberInput"] input,
+			[data-testid="stDateInput"] input,
+			[data-testid="stTextArea"] textarea,
+			[data-testid="stTimeInput"] input {
+				color: #202344 !important;
+			}
+
+			[data-testid="stTextInput"] input::placeholder,
+			[data-testid="stTextArea"] textarea::placeholder {
+				color: #666d86 !important;
+			}
+
+			[data-baseweb="popover"] [role="listbox"],
+			[data-baseweb="menu"],
+			[data-baseweb="popover"] [role="option"] {
+				border-color: rgba(83, 87, 143, 0.18);
+				background: #ffffff;
+				color: #202344;
+			}
+
+			[data-baseweb="popover"] [role="option"]:hover,
+			[data-baseweb="popover"] [aria-selected="true"] {
+				background: linear-gradient(100deg, rgba(121, 99, 223, 0.16), rgba(54, 190, 170, 0.14));
+				color: #202344;
+			}
+
+			label, [data-testid="stWidgetLabel"] p,
+			[data-testid="stCheckbox"] label,
+			[data-testid="stRadio"] label,
+			[data-testid="stToggle"] label {
+				color: #343650;
+			}
+
+			[data-testid="stFileUploaderDropzone"] {
+				border-color: rgba(98, 83, 196, 0.32);
+				background: rgba(255, 255, 255, 0.78);
+			}
+
+			[data-testid="stFileUploaderDropzoneInstructions"]::before {
+				color: #292747;
+			}
+
+			[data-testid="stFileUploaderDropzoneInstructions"]::after {
+				color: #5f6680;
+			}
+
+			[data-testid="stTable"] th {
+				background: rgba(228, 226, 248, 0.96);
+				color: #252642;
+			}
+
+			[data-testid="stTable"] td {
+				background: rgba(255, 255, 255, 0.86);
+				color: #292b43;
+			}
+
+			[data-testid="stDataFrame"],
+			[data-testid="stDataEditor"] {
+				--gdg-bg-cell: rgba(255, 255, 255, 0.96);
+				--gdg-bg-cell-medium: rgba(244, 244, 252, 0.98);
+				--gdg-bg-header: rgba(229, 227, 249, 0.99);
+				--gdg-bg-header-has-focus: rgba(207, 200, 248, 0.99);
+				--gdg-bg-header-hovered: rgba(218, 215, 246, 0.99);
+				--gdg-text-dark: #202344;
+				--gdg-text-medium: #424862;
+				--gdg-text-light: #626982;
+				--gdg-text-header: #252642;
+				--gdg-text-header-selected: #252642;
+				--gdg-border-color: rgba(83, 87, 143, 0.16);
+				--gdg-accent-color: #6557e8;
+			}
+
+			[data-testid="stAlert"],
+			[data-testid="stToast"] {
+				border-color: rgba(83, 87, 143, 0.17);
+				background: rgba(255, 255, 255, 0.88);
+				color: #252642;
+			}
+
+			[data-testid="stAlert"] p,
+			[data-testid="stToast"] p {
+				color: #252642;
+			}
+
+			.finance-footer {
+				border-color: rgba(83, 87, 143, 0.16);
+				color: #666d86;
+			}
+			</style>
+			""",
+			unsafe_allow_html=True,
+		)
 
 
 def render_footer() -> None:
@@ -637,6 +1050,34 @@ def render_footer() -> None:
 
 def style_plotly_chart(figure):
 	"""Apply the shared dark glass and neon palette to a Plotly figure."""
+	if st.session_state.get("finance_theme_mode") == "Гэгээлэг":
+		figure.update_layout(
+			template="plotly_white",
+			paper_bgcolor="rgba(0,0,0,0)",
+			plot_bgcolor="rgba(255,255,255,0.12)",
+			colorway=["#5b4de1", "#008f80", "#13834d", "#d84d78", "#8c4bce"],
+			font=dict(family="Aptos, Segoe UI, sans-serif", color="#424862", size=12),
+			hoverlabel=dict(
+				bgcolor="rgba(255,255,255,0.98)",
+				bordercolor="rgba(91,77,225,0.4)",
+				font=dict(color="#202344", family="Aptos, Segoe UI, sans-serif"),
+			),
+			margin=dict(l=12, r=12, t=14, b=12),
+		)
+		figure.update_xaxes(
+			gridcolor="rgba(78,84,128,0.12)",
+			linecolor="rgba(78,84,128,0.24)",
+			zerolinecolor="rgba(78,84,128,0.2)",
+			tickfont=dict(color="#555d78"),
+		)
+		figure.update_yaxes(
+			gridcolor="rgba(78,84,128,0.12)",
+			linecolor="rgba(78,84,128,0.24)",
+			zerolinecolor="rgba(78,84,128,0.2)",
+			tickfont=dict(color="#555d78"),
+		)
+		return figure
+
 	figure.update_layout(
 		template="plotly_dark",
 		paper_bgcolor="rgba(0,0,0,0)",

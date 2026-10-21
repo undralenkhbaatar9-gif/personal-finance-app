@@ -162,3 +162,15 @@ class Rule(Base):
     amount_sign: Mapped[int | None] = mapped_column(SmallInteger)
     category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"), nullable=False)
     active: Mapped[bool | None] = mapped_column(Boolean, server_default=text("true"))
+
+
+class Budget(Base):
+    __tablename__ = "budgets"
+    __table_args__ = (
+        UniqueConstraint("category_id", name="uq_budgets_category_id"),
+        CheckConstraint("monthly_limit > 0", name="ck_budgets_monthly_limit_positive"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"), nullable=False)
+    monthly_limit: Mapped[Decimal] = mapped_column(Numeric(16, 2), nullable=False)

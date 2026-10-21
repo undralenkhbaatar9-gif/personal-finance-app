@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from io import BytesIO
 
 import pandas as pd
 import streamlit as st
@@ -138,6 +139,38 @@ try:
 				alt="Ангилал, тэмдэглэл засах болон дүрэм үүсгэх боломжтой гүйлгээнүүд",
 			)
 			submitted = st.form_submit_button("Өөрчлөлт хадгалах", type="primary")
+
+		export_frame = frame[
+			["date", "account", "amount", "description", "counterparty", "category", "source", "note"]
+		].rename(
+			columns={
+				"date": "Огноо",
+				"account": "Данс",
+				"amount": "Дүн (₮)",
+				"description": "Гүйлгээний утга",
+				"counterparty": "Харилцагч",
+				"category": "Ангилал",
+				"source": "Ангилсан арга",
+				"note": "Тэмдэглэл",
+			}
+		)
+		csv_data = export_frame.to_csv(index=False).encode("utf-8-sig")
+		xlsx_buffer = BytesIO()
+		with pd.ExcelWriter(xlsx_buffer, engine="openpyxl") as writer:
+			export_frame.to_excel(writer, index=False, sheet_name="Гүйлгээнүүд")
+		with st.container(horizontal=True):
+			st.download_button(
+				"Текстэн файл татах",
+				csv_data,
+				"гүйлгээ.csv",
+				mime="text/csv",
+			)
+			st.download_button(
+				"Хүснэгтэн файл татах",
+				xlsx_buffer.getvalue(),
+				"гүйлгээ.xlsx",
+				mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+			)
 
 		if submitted:
 			with st.spinner("Өөрчлөлтийг хадгалж байна..."):
