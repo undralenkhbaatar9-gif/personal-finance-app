@@ -13,11 +13,12 @@ from finance.classifier import classify_transactions, test_rule
 from finance.config import DATABASE_URL
 from finance.db import get_session
 from finance.models import Account, Category, Counterparty, Rule, Transaction
-from finance.ui import apply_global_styles
+from finance.ui import apply_global_styles, render_footer
 
 apply_global_styles()
 st.title("Тохиргоо")
 rerun_requested = False
+success_messages: list[str] = []
 kind_labels = {"income": "Орлого", "expense": "Зарлага", "transfer": "Шилжүүлэг"}
 kind_values = {label: value for value, label in kind_labels.items()}
 field_labels = {
@@ -54,7 +55,8 @@ if accounts_tab.open:
 	with accounts_tab:
 		try:
 			with get_session() as session:
-				accounts = session.scalars(select(Account).order_by(Account.account_no)).all()
+				with st.spinner("Дансны мэдээллийг ачаалж байна..."):
+					accounts = session.scalars(select(Account).order_by(Account.account_no)).all()
 				frame = pd.DataFrame(
 					[
 						{
@@ -85,19 +87,22 @@ if accounts_tab.open:
 						if account is not None:
 							account.nickname = row["nickname"] or None
 							account.is_own = bool(row["own account"])
-					classify_transactions(session, None)
-					st.success("Дансны тохиргоог хадгаллаа.")
+					with st.spinner("Өөрийн дансны гүйлгээг дахин ангилж байна..."):
+						classify_transactions(session, None)
+					success_messages.append("Дансны тохиргоог хадгаллаа.")
 					rerun_requested = True
 		except Exception as error:
-			st.error(f"Дансны мэдээллийг ачаалж чадсангүй: {error}")
+			success_messages.clear()
+			st.error("Дансны мэдээллийг ачаалж чадсангүй. Өгөгдлийн сангийн холболтыг шалгаад дахин оролдоно уу.")
 
 if categories_tab.open:
 	with categories_tab:
 		try:
 			with get_session() as session:
-				categories = session.scalars(
-					select(Category).order_by(Category.kind, Category.name)
-				).all()
+				with st.spinner("Ангиллуудыг ачаалж байна..."):
+					categories = session.scalars(
+						select(Category).order_by(Category.kind, Category.name)
+					).all()
 				original = {category.id: category.name for category in categories}
 				frame = pd.DataFrame(
 					[
@@ -130,7 +135,7 @@ if categories_tab.open:
 							category.kind = kind_values[row["kind"]]
 							category.name = row["name"].strip()
 							category.in_reports = bool(row["in reports"])
-					st.success("Ангиллын өөрчлөлтийг хадгаллаа.")
+					success_messages.append("Ангиллын өөрчлөлтийг хадгаллаа.")
 					rerun_requested = True
 
 				with st.form("add-category", border=False):
@@ -151,7 +156,7 @@ if categories_tab.open:
 						session.add(
 							Category(kind=kind_values[kind_label], name=name.strip(), in_reports=in_reports)
 						)
-						st.success("Ангилал нэмлээ.")
+						success_messages.append("Ангилал нэмлээ.")
 						rerun_requested = True
 
 				removable = [
@@ -185,24 +190,26 @@ if categories_tab.open:
 						category = session.get(Category, category_id)
 						if category is not None:
 							session.delete(category)
-						st.success("Ангиллыг устгалаа.")
+						success_messages.append("Ангиллыг устгалаа.")
 						rerun_requested = True
 		except Exception as error:
-			st.error(f"Ангиллыг ачаалж чадсангүй: {error}")
+			success_messages.clear()
+			st.error("Ангиллыг ачаалж чадсангүй. Өгөгдлийн сангийн холболтыг шалгаад дахин оролдоно уу.")
 
 if rules_tab.open:
 	with rules_tab:
 		try:
 			with get_session() as session:
-				categories = session.scalars(
-					select(Category).order_by(Category.kind, Category.name)
-				).all()
+				with st.spinner("Дүрэм болон ангиллыг ачаалж байна..."):
+					categories = session.scalars(
+						select(Category).order_by(Category.kind, Category.name)
+					).all()
+					rules = session.scalars(select(Rule).order_by(Rule.priority, Rule.id)).all()
 				category_labels = {
 					category.id: f"{kind_labels.get(category.kind, category.kind)}: {category.name}"
 					for category in categories
 				}
 				category_ids = {label: category_id for category_id, label in category_labels.items()}
-				rules = session.scalars(select(Rule).order_by(Rule.priority, Rule.id)).all()
 				rule_rows = [
 					{
 						"id": rule.id,
@@ -277,8 +284,8 @@ if rules_tab.open:
 						rule.active = bool(row["active"])
 						if rule_id is None:
 							session.add(rule)
-					st.success("Дүрмүүдийг хадгаллаа.")
-					st.rerun()
+					success_messages.append("Дүрмүүдийг хадгаллаа.")
+					rerun_requested = True
 
 				with st.form("add-rule"):
 					priority = st.number_input("Эрэмбэ", min_value=0, value=100, step=1)
@@ -309,7 +316,7 @@ if rules_tab.open:
 								active=active,
 							)
 						)
-						st.success("Дүрэм нэмлээ.")
+						success_messages.append("Дүрэм нэмлээ.")
 						rerun_requested = True
 
 				if rules:
@@ -345,11 +352,13 @@ if rules_tab.open:
 					st.caption(f"{len(preview)} өмнөх гүйлгээнд таарна")
 					st.dataframe(preview, hide_index=True, alt="Сонгосон дүрэмд таарах гүйлгээнүүд")
 				if st.button("Бүх гүйлгээг дахин ангилах", key="reclassify-all"):
-					classify_transactions(session, None)
-					st.success("Гүйлгээг дахин ангиллаа. Гараар ангилсан гүйлгээнд өөрчлөлт ороогүй.")
+					with st.spinner("Гүйлгээг дахин ангилж байна..."):
+						classify_transactions(session, None)
+					success_messages.append("Гүйлгээг дахин ангиллаа. Гараар ангилсан гүйлгээнд өөрчлөлт ороогүй.")
 					rerun_requested = True
 		except Exception as error:
-			st.error(f"Дүрмийг ачаалж чадсангүй: {error}")
+			success_messages.clear()
+			st.error("Дүрмийг ачаалж чадсангүй. Өгөгдлийн сангийн холболтыг шалгаад дахин оролдоно уу.")
 
 if backup_tab.open:
 	with backup_tab:
@@ -383,19 +392,26 @@ if backup_tab.open:
 					environment = os.environ.copy()
 					if database_url.password:
 						environment["PGPASSWORD"] = database_url.password
-					result = subprocess.run(
-						command,
-						check=False,
-						capture_output=True,
-						text=True,
-						env=environment,
-					)
+					with st.spinner("Өгөгдлийн санг нөөцөлж байна..."):
+						result = subprocess.run(
+							command,
+							check=False,
+							capture_output=True,
+							text=True,
+							env=environment,
+						)
 					if result.returncode:
 						st.error(result.stderr.strip() or "pg_dump алдааны мэдээлэлгүйгээр амжилтгүй боллоо.")
 					else:
 						st.success(f"Нөөц файл үүслээ: {output_path}")
+						st.toast("Өгөгдлийн сангийн нөөц файл амжилттай үүслээ.")
 				except (OSError, ValueError) as error:
 					st.error(f"Нөөц файл үүсгэж чадсангүй: {error}")
 
+for success_message in success_messages:
+	st.success(success_message)
+	st.toast(success_message)
+
+render_footer()
 if rerun_requested:
 	st.rerun()

@@ -6,11 +6,12 @@ from sqlalchemy import or_, select
 
 from finance.db import get_session
 from finance.models import Account, Category, Counterparty, Rule, Transaction
-from finance.ui import apply_global_styles
+from finance.ui import apply_global_styles, render_footer
 
 apply_global_styles()
 st.title("Бүх гүйлгээ")
 rerun_requested = False
+notification_message: str | None = None
 today = date.today()
 kind_labels = {"income": "Орлого", "expense": "Зарлага", "transfer": "Шилжүүлэг"}
 source_labels = {
@@ -80,9 +81,10 @@ try:
 					Counterparty.match_key.ilike(pattern),
 				)
 			)
-		rows = session.execute(
-			query.order_by(Transaction.txn_datetime.desc()).limit(2000)
-		).all()
+		with st.spinner("Гүйлгээнүүдийг ачаалж байна..."):
+			rows = session.execute(
+				query.order_by(Transaction.txn_datetime.desc()).limit(2000)
+			).all()
 		category_labels = {
 			category.id: f"{kind_labels.get(category.kind, category.kind)}: {category.name}"
 			for category in categories
@@ -138,53 +140,60 @@ try:
 			submitted = st.form_submit_button("Өөрчлөлт хадгалах", type="primary")
 
 		if submitted:
-			saved = 0
-			rules_added = 0
-			for row in edited.to_dict("records"):
-				txn_id = int(row["txn_id"])
-				previous = original[txn_id]
-				transaction = session.get(Transaction, txn_id)
-				if transaction is None:
-					continue
-				category_label = row["category"]
-				category_id = next(
-					(key for key, label in category_labels.items() if label == category_label),
-					None,
-				)
-				if category_id != transaction.category_id:
-					transaction.category_id = category_id
-					transaction.category_source = "manual"
-					saved += 1
-				if (row["note"] or "") != (previous["note"] or ""):
-					transaction.note = row["note"] or None
-					saved += 1
-				match_key = row["match_key"]
-				if row["make rule"] and match_key and category_id is not None:
-					existing_rule = session.scalar(
-						select(Rule.id).where(
-							Rule.field == "match_key",
-							Rule.match_type == "equals",
-							Rule.pattern == match_key,
-							Rule.category_id == category_id,
-							Rule.active.is_(True),
-						)
+			with st.spinner("Өөрчлөлтийг хадгалж байна..."):
+				saved = 0
+				rules_added = 0
+				for row in edited.to_dict("records"):
+					txn_id = int(row["txn_id"])
+					previous = original[txn_id]
+					transaction = session.get(Transaction, txn_id)
+					if transaction is None:
+						continue
+					category_label = row["category"]
+					category_id = next(
+						(key for key, label in category_labels.items() if label == category_label),
+						None,
 					)
-					if existing_rule is None:
-						session.add(
-							Rule(
-								priority=50,
-								field="match_key",
-								match_type="equals",
-								pattern=match_key,
-								category_id=category_id,
-								active=True,
+					if category_id != transaction.category_id:
+						transaction.category_id = category_id
+						transaction.category_source = "manual"
+						saved += 1
+					if (row["note"] or "") != (previous["note"] or ""):
+						transaction.note = row["note"] or None
+						saved += 1
+					match_key = row["match_key"]
+					if row["make rule"] and match_key and category_id is not None:
+						existing_rule = session.scalar(
+							select(Rule.id).where(
+								Rule.field == "match_key",
+								Rule.match_type == "equals",
+								Rule.pattern == match_key,
+								Rule.category_id == category_id,
+								Rule.active.is_(True),
 							)
 						)
-						rules_added += 1
-			st.success(f"{saved} гүйлгээний өөрчлөлтийг хадгалж, {rules_added} дүрэм үүсгэлээ.")
+						if existing_rule is None:
+							session.add(
+								Rule(
+									priority=50,
+									field="match_key",
+									match_type="equals",
+									pattern=match_key,
+									category_id=category_id,
+									active=True,
+								)
+							)
+							rules_added += 1
+			notification_message = f"{saved} гүйлгээний өөрчлөлтийг хадгалж, {rules_added} дүрэм үүсгэлээ."
 			rerun_requested = True
 except Exception as error:
-	st.error(f"Гүйлгээг ачаалж чадсангүй: {error}")
+	notification_message = None
+	st.error("Гүйлгээг ачаалж эсвэл хадгалж чадсангүй. Өгөгдлийн сангийн холболтыг шалгаад дахин оролдоно уу.")
 
+if notification_message:
+	st.success(notification_message)
+	st.toast(f"{saved} гүйлгээний өөрчлөлтийг хадгаллаа.")
+
+render_footer()
 if rerun_requested:
 	st.rerun()

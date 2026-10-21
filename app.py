@@ -8,7 +8,7 @@ from sqlalchemy import func, select, text
 from finance.db import get_session
 from finance.models import Category, Transaction
 from finance.reports import expense_by_category, monthly_summary
-from finance.ui import apply_global_styles
+from finance.ui import apply_global_styles, render_footer
 
 st.set_page_config(page_title="Санхүү", page_icon=":material/account_balance_wallet:", layout="wide")
 
@@ -28,33 +28,34 @@ def dashboard() -> None:
 	month_start = today - timedelta(days=179)
 	recent_start = today - timedelta(days=29)
 	try:
-		with get_session() as session:
-			session.execute(text("SELECT 1"))
-			income = session.scalar(
-				select(func.coalesce(func.sum(Transaction.amount), 0))
-				.join(Category, Category.id == Transaction.category_id)
-				.where(
-					Transaction.txn_datetime >= recent_start,
-					Transaction.amount > 0,
-					Category.kind == "income",
-					Category.in_reports.is_(True),
-				)
-			) or Decimal("0.00")
-			expense = session.scalar(
-				select(func.coalesce(func.sum(func.abs(Transaction.amount)), 0))
-				.join(Category, Category.id == Transaction.category_id)
-				.where(
-					Transaction.txn_datetime >= recent_start,
-					Transaction.amount < 0,
-					Category.kind == "expense",
-					Category.in_reports.is_(True),
-				)
-			) or Decimal("0.00")
-			unclassified = session.scalar(
-				select(func.count()).select_from(Transaction).where(Transaction.category_id.is_(None))
-			) or 0
-			monthly = monthly_summary(session, month_start, today)
-			category_expenses = expense_by_category(session, month_start, today)
+		with st.spinner("Хянах самбарын мэдээллийг ачаалж байна..."):
+			with get_session() as session:
+				session.execute(text("SELECT 1"))
+				income = session.scalar(
+					select(func.coalesce(func.sum(Transaction.amount), 0))
+					.join(Category, Category.id == Transaction.category_id)
+					.where(
+						Transaction.txn_datetime >= recent_start,
+						Transaction.amount > 0,
+						Category.kind == "income",
+						Category.in_reports.is_(True),
+					)
+				) or Decimal("0.00")
+				expense = session.scalar(
+					select(func.coalesce(func.sum(func.abs(Transaction.amount)), 0))
+					.join(Category, Category.id == Transaction.category_id)
+					.where(
+						Transaction.txn_datetime >= recent_start,
+						Transaction.amount < 0,
+						Category.kind == "expense",
+						Category.in_reports.is_(True),
+					)
+				) or Decimal("0.00")
+				unclassified = session.scalar(
+					select(func.count()).select_from(Transaction).where(Transaction.category_id.is_(None))
+				) or 0
+				monthly = monthly_summary(session, month_start, today)
+				category_expenses = expense_by_category(session, month_start, today)
 
 		net = income - expense
 		with st.container(key="finance-dashboard-kpis", horizontal=True):
@@ -120,9 +121,11 @@ def dashboard() -> None:
 				st.plotly_chart(chart, alt="Сүүлийн зургаан сарын зарлага ангиллаар")
 	except Exception as error:
 		st.error(
-			f"Мэдээллийн сантай холбогдож чадсангүй. Тохиргоо болон сангийн эхлүүлэлтийг шалгана уу. ({error})",
-		title="Өгөгдлийн сангийн алдаа",
+			"Мэдээллийн сантай холбогдож чадсангүй. DATABASE_URL болон өгөгдлийн сангийн эхлүүлэлтийг шалгана уу.",
+			title="Өгөгдлийн сангийн алдаа",
 		)
+
+	render_footer()
 
 
 page_dashboard = st.Page(

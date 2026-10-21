@@ -9,7 +9,7 @@ from finance.db import get_session
 from finance.importer import DuplicateFileError, ValidationError, import_statement, validate
 from finance.models import Import
 from finance.parsers import PARSERS
-from finance.ui import apply_global_styles
+from finance.ui import apply_global_styles, render_footer
 
 apply_global_styles()
 
@@ -41,10 +41,11 @@ if uploaded_file is not None:
 	suffix = Path(uploaded_file.name).suffix.lower()
 	with TemporaryDirectory() as temporary_folder:
 		temporary_path = Path(temporary_folder) / f"statement{suffix}"
-		temporary_path.write_bytes(uploaded_file.getvalue())
 		try:
-			info, transactions = PARSERS[bank_code].parse(temporary_path)
-			errors = validate(info, transactions)
+			with st.spinner("Хуулгыг уншиж, шалгаж байна..."):
+				temporary_path.write_bytes(uploaded_file.getvalue())
+				info, transactions = PARSERS[bank_code].parse(temporary_path)
+				errors = validate(info, transactions)
 			st.subheader("Хуулгын мэдээлэл")
 			st.table(
 				{
@@ -81,15 +82,17 @@ if uploaded_file is not None:
 				st.success("Үлдэгдлийн дараалал болон хуулгын нийлбэр зөв байна")
 				if st.button("Импорт баталгаажуулах", type="primary", disabled=bool(errors)):
 					try:
-						result = import_statement(
-							temporary_path,
-							uploaded_file.name,
-							bank_code,
-						)
+						with st.spinner("Гүйлгээг хадгалж, ангилж байна..."):
+							result = import_statement(
+								temporary_path,
+								uploaded_file.name,
+								bank_code,
+							)
 						st.success(
 							f"{result.rows_new} шинэ гүйлгээг импортолж, "
 							f"{result.rows_duplicate} давхардлыг алгаслаа."
 						)
+						st.toast(f"{result.rows_new} шинэ гүйлгээг амжилттай импортоллоо.")
 						st.page_link("pages/2_Review.py", label="Ангилаагүй гүйлгээг ангилах", icon=":material/rule:")
 					except DuplicateFileError as error:
 						st.warning(f"Энэ хуулгыг өмнө нь импортолсон байна: {uploaded_file.name}")
@@ -97,15 +100,18 @@ if uploaded_file is not None:
 						st.error("Хуулгын шалгалт амжилтгүй боллоо.")
 						for message in error.errors:
 							st.write(f"- {_validation_message(message)}")
+					except Exception as error:
+						st.error("Импорт амжилтгүй боллоо. Өгөгдлийн сангийн холболтыг шалгаад дахин оролдоно уу.")
 		except Exception as error:
-			st.error(f"Хуулгыг уншиж чадсангүй: {error}")
+			st.error("Хуулгыг уншиж чадсангүй. Файлын төрөл болон агуулгыг шалгаад дахин оролдоно уу.")
 
 st.subheader("Өмнөх импортууд")
 try:
-	with get_session() as session:
-		imports = session.scalars(
-			select(Import).order_by(Import.imported_at.desc()).limit(100)
-		).all()
+	with st.spinner("Импортын түүхийг ачаалж байна..."):
+		with get_session() as session:
+			imports = session.scalars(
+				select(Import).order_by(Import.imported_at.desc()).limit(100)
+			).all()
 		st.dataframe(
 			[
 				{
@@ -123,4 +129,6 @@ try:
 			alt="Сүүлд импортолсон банкны хуулгууд",
 		)
 except Exception as error:
-	st.info(f"Импортын түүхийг харуулах боломжгүй байна: {error}")
+	st.warning("Импортын түүхийг одоогоор харуулах боломжгүй байна.")
+
+render_footer()

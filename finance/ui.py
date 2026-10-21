@@ -182,6 +182,15 @@ def apply_global_styles() -> None:
 			box-shadow: 0 8px 25px rgba(43, 47, 91, 0.055);
 		}
 
+		.finance-footer {
+			margin-top: 3rem;
+			padding: 1.1rem 0 0.35rem;
+			border-top: 1px solid var(--finance-border);
+			color: var(--finance-muted);
+			font-size: 0.82rem;
+			text-align: center;
+		}
+
 		@media (max-width: 760px) {
 			.main .block-container {
 				padding: 1.25rem 1rem 2rem;
@@ -204,5 +213,13 @@ def apply_global_styles() -> None:
 		}
 		</style>
 		""",
+		unsafe_allow_html=True,
+	)
+
+
+def render_footer() -> None:
+	"""Render the shared Mongolian application footer."""
+	st.markdown(
+		'<div class="finance-footer">Хувийн санхүү · Аюулгүй, найдвартай</div>',
 		unsafe_allow_html=True,
 	)

@@ -14,7 +14,7 @@ from finance.reports import (
 	transactions_export,
 	unclassified_total,
 )
-from finance.ui import apply_global_styles
+from finance.ui import apply_global_styles, render_footer
 
 apply_global_styles()
 st.title("Тайлан мэдээ")
@@ -34,18 +34,19 @@ else:
 	date_from = date_to = date_range
 
 try:
-	with get_session() as session:
-		monthly = monthly_summary(session, date_from, date_to, include_transfers)
-		expenses = expense_by_category(session, date_from, date_to, include_transfers)
-		counterparties = top_counterparties(session, date_from, date_to, include_transfers)
-		export = transactions_export(
-			session,
-			date_from,
-			date_to,
-			include_transfers,
-			include_unclassified,
-		)
-		unclassified = unclassified_total(session, date_from, date_to)
+	with st.spinner("Тайлангийн мэдээллийг тооцоолж байна..."):
+		with get_session() as session:
+			monthly = monthly_summary(session, date_from, date_to, include_transfers)
+			expenses = expense_by_category(session, date_from, date_to, include_transfers)
+			counterparties = top_counterparties(session, date_from, date_to, include_transfers)
+			export = transactions_export(
+				session,
+				date_from,
+				date_to,
+				include_transfers,
+				include_unclassified,
+			)
+			unclassified = unclassified_total(session, date_from, date_to)
 	export = export.rename(
 		columns={
 			"id": "Гүйлгээний дугаар",
@@ -154,4 +155,6 @@ try:
 			mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 		)
 except Exception as error:
-	st.error(f"Тайланг ачаалж чадсангүй: {error}")
+	st.error("Тайланг ачаалж чадсангүй. Хугацаа болон өгөгдлийн сангийн холболтыг шалгана уу.")
+
+render_footer()

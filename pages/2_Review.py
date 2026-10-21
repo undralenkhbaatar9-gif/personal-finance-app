@@ -7,19 +7,21 @@ from sqlalchemy import select
 from finance.classifier import classify_transactions
 from finance.db import get_session
 from finance.models import Category, Counterparty, Transaction
-from finance.ui import apply_global_styles
+from finance.ui import apply_global_styles, render_footer
 
 apply_global_styles()
 st.title("Гүйлгээ ангилах")
 rerun_requested = False
+notification_message: str | None = None
 kind_labels = {"income": "Орлого", "expense": "Зарлага", "transfer": "Шилжүүлэг"}
 
 try:
 	with get_session() as session:
 		categories = session.scalars(select(Category).order_by(Category.kind, Category.name)).all()
-		unclassified = session.scalars(
-			select(Transaction).where(Transaction.category_source == "unclassified")
-		).all()
+		with st.spinner("Ангилаагүй гүйлгээнүүдийг ачаалж байна..."):
+			unclassified = session.scalars(
+				select(Transaction).where(Transaction.category_source == "unclassified")
+			).all()
 		category_options = [
 			f"{kind_labels.get(category.kind, category.kind)}: {category.name}"
 			for category in categories
@@ -125,11 +127,18 @@ try:
 							)
 						).all()
 					)
-				classify_transactions(session, changed_ids)
-				st.success("Харилцагчдын тохиргоог хадгалж, гүйлгээг дахин ангиллаа.")
+				with st.spinner("Гүйлгээг дахин ангилж байна..."):
+					classify_transactions(session, changed_ids)
+				notification_message = "Харилцагчдын тохиргоог хадгалж, гүйлгээг дахин ангиллаа."
 				rerun_requested = True
 except Exception as error:
-	st.error(f"Харилцагчдыг ачаалж чадсангүй: {error}")
+	notification_message = None
+	st.error("Харилцагчдыг ачаалж эсвэл хадгалж чадсангүй. Өгөгдлийн сангийн холболтыг шалгаад дахин оролдоно уу.")
 
+if notification_message:
+	st.success(notification_message)
+	st.toast("Харилцагчийн тохиргоо амжилттай хадгалагдлаа.")
+
+render_footer()
 if rerun_requested:
 	st.rerun()
