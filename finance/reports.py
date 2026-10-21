@@ -67,7 +67,24 @@ def transactions_export(
             session, date_from, date_to, include_transfers, include_unclassified
         )
     ).mappings().all()
-    return pd.DataFrame.from_records(rows)
+    return pd.DataFrame.from_records(
+        rows,
+        columns=[
+            "id",
+            "date",
+            "amount",
+            "description",
+            "note",
+            "category_source",
+            "category_id",
+            "kind",
+            "category",
+            "counterparty",
+            "match_key",
+            "account",
+            "account_no",
+        ],
+    )
 
 
 def monthly_summary(
