@@ -4,8 +4,13 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from finance.models import Account, Bank, Category, Counterparty, Rule, Transaction
+from finance.models import Account, Bank, Base, Budget, Category, Counterparty, Rule, Transaction
 from finance.classifier import classify_transactions, match_rule, test_rule as preview_rule
+
+
+def test_budget_model_is_exported_and_registered():
+    assert Budget.__tablename__ == "budgets"
+    assert Base.metadata.tables["budgets"] is Budget.__table__
 
 
 def _base_rows(session: Session):

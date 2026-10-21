@@ -8,7 +8,7 @@ import streamlit as st
 from sqlalchemy import func, select
 
 from finance.db import get_session
-from finance.models import Budget, Category, Transaction
+from finance.models import  Category, Transaction
 from finance.reports import (
 	expense_by_category,
 	monthly_summary,
