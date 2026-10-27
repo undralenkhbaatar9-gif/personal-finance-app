@@ -52,7 +52,7 @@ bank_styles = {
     },
 }
 
-# --- OPRCHUULGA ---
+# --- ОРЧУУЛГА ---
 if lang == "Монгол":
   title_text = "📄 Банкны хуулга импортлох"
   bank_label = "Банк сонгох"
@@ -81,20 +81,26 @@ st.markdown(f"### {title_text}")
 bank_options = list(bank_styles.keys())
 bank = st.selectbox(bank_label, bank_options)
 
-# Songoson banknii ungiig avah
-selected_bank_info = bank_styles.get(bank, {"color": "#10B981", "bg_glow": "rgba(16, 185, 129, 0.15)", "logo": "🏦"})
+selected_bank_info = bank_styles.get(
+    bank,
+    {
+        "color": "#10B981",
+        "bg_glow": "rgba(16, 185, 129, 0.15)",
+        "logo": "🏦",
+    },
+)
 bank_color = selected_bank_info["color"]
 bank_glow = selected_bank_info["bg_glow"]
 bank_logo = selected_bank_info["logo"]
 
-# 🌙 Dark Glassmorphism + Dynamic Bank Theme CSS
+# 🌙 Dark Glassmorphism + Dynamic Bank Theme CSS (Double braces {{ }} used for CSS)
 st.markdown(
     f"""
 <style>
     .stApp {{
         background-color: #0e1117;
         color: #ffffff;
-    }
+    }}
     [data-testid="stSidebar"] {{
         background-color: #1e222d !important;
     }}
@@ -134,7 +140,6 @@ st.markdown(
         background-color: #35383f !important;
     }}
 
-    /* Bank Banner Header */
     .bank-banner {{
         background: linear-gradient(135deg, {bank_glow} 0%, rgba(30, 34, 45, 0.6) 100%);
         border: 1px solid {bank_color};
@@ -145,9 +150,8 @@ st.markdown(
         align-items: center;
         gap: 15px;
         box-shadow: 0 4px 20px {bank_glow};
-    }
+    }}
 
-    /* File Uploader styling with dynamic bank border */
     [data-testid="stFileUploader"] {{
         background-color: rgba(255, 255, 255, 0.03) !important;
         border: 2px dashed {bank_color} !important;
@@ -178,7 +182,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- BANKNII LOGO & BANNER UI ---
 st.markdown(
     f"""
     <div class="bank-banner">
@@ -194,7 +197,6 @@ st.markdown(
 
 uploaded_file = st.file_uploader(file_label_text.format(bank=bank), type=["xlsx", "csv"])
 
-# Database path
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(ROOT_DIR, "finance.db")
 
@@ -214,7 +216,7 @@ if uploaded_file is not None:
       df = pd.read_excel(uploaded_file)
 
     st.markdown(f"#### {preview_text}")
-    st.dataframe(df.data if hasattr(df, 'data') else df.head(), use_container_width=True)
+    st.dataframe(df.head(), use_container_width=True)
 
     if st.button(save_btn):
       conn = get_connection()
