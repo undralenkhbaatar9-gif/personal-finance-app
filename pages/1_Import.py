@@ -13,89 +13,46 @@ lang = st.sidebar.selectbox(
     "Хэл сонгох", ["Монгол", "English"], label_visibility="collapsed"
 )
 
-# 🌙 Dark Glassmorphism загвар (Банк сонгох бичвэрийг цагаан болгосон)
-st.markdown(
-    """
-<style>
-    .stApp {
-        background-color: #0e1117;
-        color: #ffffff;
-    }
-    /* Sidebar-ыг хар өнгөтэй байлгах */
-    [data-testid="stSidebar"] {
-        background-color: #1e222d !important;
-    }
-    [data-testid="stSidebar"] span, 
-    [data-testid="stSidebar"] p, 
-    [data-testid="stSidebar"] div,
-    [data-testid="stSidebar"] label,
-    [data-testid="stSidebar"] a {
-        color: #ffffff !important;
-    }
-    
-    /* "Банк сонгох" гэсэн шошго (label) болон бичвэрийг цагаан болгох */
-    .stSelectbox label p, label {
-        color: #ffffff !important;
-    }
-    
-    /* Selectbox container styling */
-    div[data-baseweb="select"] > div {
-        background-color: #1e222d !important;
-        color: #ffffff !important;
-        border-color: rgba(255, 255, 255, 0.2) !important;
-    }
-    
-    div[data-baseweb="select"] span {
-        color: #ffffff !important;
-    }
+# --- BANKNII BRAND UNGUUOD (Dictionary) ---
+bank_styles = {
+    "Хаан банк": {
+        "color": "#00A86B",
+        "bg_glow": "rgba(0, 168, 107, 0.15)",
+        "logo": "🟢",
+    },
+    "Голомт банк": {
+        "color": "#0052CC",
+        "bg_glow": "rgba(0, 82, 204, 0.15)",
+        "logo": "🔵",
+    },
+    "Хас банк": {
+        "color": "#FF6B00",
+        "bg_glow": "rgba(255, 107, 0, 0.15)",
+        "logo": "🟠",
+    },
+    "Төрийн банк": {
+        "color": "#002B49",
+        "bg_glow": "rgba(0, 43, 73, 0.25)",
+        "logo": "🏛️",
+    },
+    "ХХБ (Худалдаа хөгжлийн банк)": {
+        "color": "#E31B23",
+        "bg_glow": "rgba(227, 27, 35, 0.15)",
+        "logo": "🔴",
+    },
+    "Ариг банк": {
+        "color": "#8E44AD",
+        "bg_glow": "rgba(142, 68, 173, 0.15)",
+        "logo": "🟣",
+    },
+    "Богд банк": {
+        "color": "#F1C40F",
+        "bg_glow": "rgba(241, 196, 15, 0.15)",
+        "logo": "🟡",
+    },
+}
 
-    /* Dropdown popup цэс */
-    div[data-baseweb="popover"], div[role="listbox"] {
-        background-color: #1e222d !important;
-        color: #ffffff !important;
-    }
-    
-    div[role="option"] {
-        background-color: #1e222d !important;
-        color: #ffffff !important;
-    }
-    div[role="option"]:hover {
-        background-color: #35383f !important;
-    }
-
-    /* File Uploader загвар */
-    [data-testid="stFileUploader"] {
-        background-color: rgba(255, 255, 255, 0.03) !important;
-        border: 1px solid rgba(255, 255, 255, 0.15) !important;
-        border-radius: 12px;
-        padding: 20px;
-    }
-    [data-testid="stFileUploader"] section {
-        background-color: transparent !important;
-    }
-    [data-testid="stFileUploader"] div, 
-    [data-testid="stFileUploader"] span, 
-    [data-testid="stFileUploader"] small, 
-    [data-testid="stFileUploader"] p {
-        color: #ffffff !important;
-    }
-    [data-testid="stFileUploader"] button {
-        color: #ffffff !important;
-        background-color: #1e222d !important;
-        font-weight: 600 !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
-        border-radius: 8px !important;
-    }
-    [data-testid="stFileUploader"] button:hover {
-        background-color: #2b2d31 !important;
-        border-color: #10B981 !important;
-    }
-</style>
-""",
-    unsafe_allow_html=True,
-)
-
-# --- ОРЧУУЛГА ---
+# --- OPRCHUULGA ---
 if lang == "Монгол":
   title_text = "📄 Банкны хуулга импортлох"
   bank_label = "Банк сонгох"
@@ -119,6 +76,124 @@ else:
   prev_imports = "Previous Imports"
   no_history = "Import history is currently unavailable."
 
+st.markdown(f"### {title_text}")
+
+bank_options = list(bank_styles.keys())
+bank = st.selectbox(bank_label, bank_options)
+
+# Songoson banknii ungiig avah
+selected_bank_info = bank_styles.get(bank, {"color": "#10B981", "bg_glow": "rgba(16, 185, 129, 0.15)", "logo": "🏦"})
+bank_color = selected_bank_info["color"]
+bank_glow = selected_bank_info["bg_glow"]
+bank_logo = selected_bank_info["logo"]
+
+# 🌙 Dark Glassmorphism + Dynamic Bank Theme CSS
+st.markdown(
+    f"""
+<style>
+    .stApp {{
+        background-color: #0e1117;
+        color: #ffffff;
+    }
+    [data-testid="stSidebar"] {{
+        background-color: #1e222d !important;
+    }}
+    [data-testid="stSidebar"] span, 
+    [data-testid="stSidebar"] p, 
+    [data-testid="stSidebar"] div,
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] a {{
+        color: #ffffff !important;
+    }}
+    
+    .stSelectbox label p, label {{
+        color: #ffffff !important;
+    }}
+    
+    div[data-baseweb="select"] > div {{
+        background-color: #1e222d !important;
+        color: #ffffff !important;
+        border-color: {bank_color} !important;
+        box-shadow: 0 0 10px {bank_glow} !important;
+    }}
+    
+    div[data-baseweb="select"] span {{
+        color: #ffffff !important;
+    }}
+
+    div[data-baseweb="popover"], div[role="listbox"] {{
+        background-color: #1e222d !important;
+        color: #ffffff !important;
+    }}
+    
+    div[role="option"] {{
+        background-color: #1e222d !important;
+        color: #ffffff !important;
+    }}
+    div[role="option"]:hover {{
+        background-color: #35383f !important;
+    }}
+
+    /* Bank Banner Header */
+    .bank-banner {{
+        background: linear-gradient(135deg, {bank_glow} 0%, rgba(30, 34, 45, 0.6) 100%);
+        border: 1px solid {bank_color};
+        border-radius: 14px;
+        padding: 15px 20px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        box-shadow: 0 4px 20px {bank_glow};
+    }
+
+    /* File Uploader styling with dynamic bank border */
+    [data-testid="stFileUploader"] {{
+        background-color: rgba(255, 255, 255, 0.03) !important;
+        border: 2px dashed {bank_color} !important;
+        border-radius: 14px;
+        padding: 20px;
+    }}
+    [data-testid="stFileUploader"] section {{
+        background-color: transparent !important;
+    }}
+    [data-testid="stFileUploader"] div, 
+    [data-testid="stFileUploader"] span, 
+    [data-testid="stFileUploader"] small, 
+    [data-testid="stFileUploader"] p {{
+        color: #ffffff !important;
+    }}
+    [data-testid="stFileUploader"] button {{
+        color: #ffffff !important;
+        background-color: {bank_color} !important;
+        font-weight: 600 !important;
+        border: none !important;
+        border-radius: 8px !important;
+    }}
+    [data-testid="stFileUploader"] button:hover {{
+        opacity: 0.85 !important;
+    }}
+</style>
+""",
+    unsafe_allow_html=True,
+)
+
+# --- BANKNII LOGO & BANNER UI ---
+st.markdown(
+    f"""
+    <div class="bank-banner">
+        <span style="font-size: 32px;">{bank_logo}</span>
+        <div>
+            <h3 style="margin: 0; color: #ffffff;">{bank}</h3>
+            <p style="margin: 0; color: #94a3b8; font-size: 13px;">Сонгосон банкны загвар идэвхжлээ</p>
+        </div>
+    </div>
+""",
+    unsafe_allow_html=True,
+)
+
+uploaded_file = st.file_uploader(file_label_text.format(bank=bank), type=["xlsx", "csv"])
+
 # Database path
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(ROOT_DIR, "finance.db")
@@ -130,22 +205,6 @@ def get_connection():
   return conn
 
 
-st.markdown(f"### {title_text}")
-
-bank_options = [
-    "Хаан банк",
-    "Голомт банк",
-    "Хас банк",
-    "Төрийн банк",
-    "ХХБ (Худалдаа хөгжлийн банк)",
-    "Ариг банк",
-    "Богд банк",
-]
-
-bank = st.selectbox(bank_label, bank_options)
-
-uploaded_file = st.file_uploader(file_label_text.format(bank=bank), type=["xlsx", "csv"])
-
 if uploaded_file is not None:
   st.success(f"{success_file}{uploaded_file.name}")
   try:
@@ -155,7 +214,7 @@ if uploaded_file is not None:
       df = pd.read_excel(uploaded_file)
 
     st.markdown(f"#### {preview_text}")
-    st.dataframe(df.head(), use_container_width=True)
+    st.dataframe(df.data if hasattr(df, 'data') else df.head(), use_container_width=True)
 
     if st.button(save_btn):
       conn = get_connection()
