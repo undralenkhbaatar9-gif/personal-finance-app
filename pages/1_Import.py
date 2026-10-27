@@ -13,56 +13,42 @@ lang = st.sidebar.selectbox(
     "Хэл сонгох", ["Монгол", "English"], label_visibility="collapsed"
 )
 
-# --- БАНКНЫ ЛОГО БОЛОН ӨНГӨНИЙ МЭДЭЭЛЭЛ ---
+# --- БАНКНЫ ЗАГВАР БОЛОН ИКОНҮҮД ---
 bank_styles = {
     "Хаан банк": {
         "color": "#00A86B",
         "bg_glow": "rgba(0, 168, 107, 0.15)",
-        "logo_url": (
-            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18"
-            "/Khan_Bank_logo.svg/512px-Khan_Bank_logo.svg.png"
-        ),
+        "icon": "🌱",
     },
     "Голомт банк": {
         "color": "#0052CC",
         "bg_glow": "rgba(0, 82, 204, 0.15)",
-        "logo_url": (
-            "https://upload.wikimedia.org/wikipedia/commons/a/a2/Golomt_Bank_"
-            "logo.png"
-        ),
+        "icon": "💳",
     },
     "Хас банк": {
         "color": "#FF6B00",
         "bg_glow": "rgba(255, 107, 0, 0.15)",
-        "logo_url": (
-            "https://upload.wikimedia.org/wikipedia/commons/4/4d/XacBank_logo.png"
-        ),
+        "icon": "🟧",
     },
     "Төрийн банк": {
         "color": "#002B49",
         "bg_glow": "rgba(0, 43, 73, 0.25)",
-        "logo_url": (
-            "https://upload.wikimedia.org/wikipedia/commons/8/87/State_Bank"
-            "_Mongolia.png"
-        ),
+        "icon": "🏛️",
     },
     "ХХБ (Худалдаа хөгжлийн банк)": {
         "color": "#E31B23",
         "bg_glow": "rgba(227, 27, 35, 0.15)",
-        "logo_url": (
-            "https://upload.wikimedia.org/wikipedia/commons/9/93/TDB_Mongolia"
-            "_logo.png"
-        ),
+        "icon": "🏦",
     },
     "Ариг банк": {
         "color": "#8E44AD",
         "bg_glow": "rgba(142, 68, 173, 0.15)",
-        "logo_url": "https://arigbank.mn/images/logo.png",
+        "icon": "🟣",
     },
     "Богд банк": {
         "color": "#F1C40F",
         "bg_glow": "rgba(241, 196, 15, 0.15)",
-        "logo_url": "https://bogdbank.com/images/logo.png",
+        "icon": "🟡",
     },
 }
 
@@ -79,6 +65,7 @@ if lang == "Монгол":
   )
   prev_imports = "Өмнөх импортууд"
   no_history = "Импортын түүхийг одоогоор харуулах боломжгүй байна."
+  upload_text = "Файл оруулах"
 else:
   title_text = "📄 Import Bank Statement"
   bank_label = "Select Bank"
@@ -89,6 +76,7 @@ else:
   save_success = "✅ Total {count} transactions successfully saved!"
   prev_imports = "Previous Imports"
   no_history = "Import history is currently unavailable."
+  upload_text = "Browse files"
 
 st.markdown(f"### {title_text}")
 
@@ -97,15 +85,11 @@ bank = st.selectbox(bank_label, bank_options)
 
 selected_bank_info = bank_styles.get(
     bank,
-    {
-        "color": "#10B981",
-        "bg_glow": "rgba(16, 185, 129, 0.15)",
-        "logo_url": "",
-    },
+    {"color": "#10B981", "bg_glow": "rgba(16, 185, 129, 0.15)", "icon": "🏦"},
 )
 bank_color = selected_bank_info["color"]
 bank_glow = selected_bank_info["bg_glow"]
-bank_logo_url = selected_bank_info["logo_url"]
+bank_icon = selected_bank_info["icon"]
 
 # 🌙 Dark Glassmorphism + Dynamic Bank Theme CSS
 st.markdown(
@@ -154,18 +138,32 @@ st.markdown(
         background-color: #35383f !important;
     }}
 
+    /* Bank Banner Header */
     .bank-banner {{
         background: linear-gradient(135deg, {bank_glow} 0%, rgba(30, 34, 45, 0.6) 100%);
         border: 1px solid {bank_color};
         border-radius: 14px;
-        padding: 15px 20px;
+        padding: 18px 22px;
         margin-bottom: 20px;
         display: flex;
         align-items: center;
         gap: 20px;
         box-shadow: 0 4px 20px {bank_glow};
     }}
+    .bank-logo-badge {{
+        background: {bank_color};
+        color: white;
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+        box-shadow: 0 4px 12px {bank_glow};
+    }}
 
+    /* File Uploader styling */
     [data-testid="stFileUploader"] {{
         background-color: rgba(255, 255, 255, 0.03) !important;
         border: 2px dashed {bank_color} !important;
@@ -196,13 +194,15 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- БАНКНЫ ЛОГО БҮХИЙ BANNER UI ---
+# --- БАНКНЫ БАННЕР (Зурагны оронд алдаагүй, цэвэрхэн badge ашиглах) ---
 st.markdown(
     f"""
     <div class="bank-banner">
-        <img src="{bank_logo_url}" alt="{bank} Logo" style="height: 45px; max-width: 120px; object-fit: contain; background: white; padding: 5px; border-radius: 8px;">
+        <div class="bank-logo-badge">
+            {bank_icon}
+        </div>
         <div>
-            <h3 style="margin: 0; color: #ffffff;">{bank}</h3>
+            <h3 style="margin: 0; color: #ffffff; font-size: 20px;">{bank}</h3>
             <p style="margin: 0; color: #94a3b8; font-size: 13px;">{"Банкны хуулга импортлох хэсэг" if lang=="Монгол" else "Bank Statement Import Section"}</p>
         </div>
     </div>
