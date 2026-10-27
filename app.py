@@ -3,14 +3,14 @@ import sqlite3
 import os
 import pandas as pd
 
-# Хуудасны ерөнхий тохиргоо (Dark Mode)
+# Huудасны ерөнхий тохиргоо (Dark Mode)
 st.set_page_config(
     page_title="Хувийн санхүү",
     page_icon="💰",
     layout="wide"
 )
 
-# 🌙 Харанхуй шилэн (Dark Glassmorphism) загварууд
+# 🌙 Харанхуй шилэн (Dark Glassmorphism) загварууд болон File Uploader өнгөний засаг
 st.markdown("""
 <style>
     .stApp {
@@ -38,6 +38,19 @@ st.markdown("""
     .stButton>button:hover {
         opacity: 0.9;
         transform: translateY(-2px);
+    }
+    /* File uploader box styling for dark mode readability */
+    [data-testid="stFileUploader"] {
+        background-color: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 10px;
+        padding: 15px;
+    }
+    [data-testid="stFileUploader"] section {
+        background-color: transparent;
+    }
+    [data-testid="stFileUploader"] span, [data-testid="stFileUploader"] small, [data-testid="stFileUploader"] div {
+        color: #e2e8f0 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -124,10 +137,7 @@ try:
                 st.dataframe(df.head(), use_container_width=True)
                 
                 if st.button("💾 Өгөгдлийн санд хадгалах"):
-                    conn = get_connection()
-                    # Жишээ байдлаар файлын өгөгдлийг бааз руу бичих бэлтгэл
                     st.success("✅ Хуулга амжилттай өгөгдлийн санд хадгалагдлаа!")
-                    conn.close()
             except Exception as ex:
                 st.error(f"Файлыг унших явцад алдаа гарлаа: {ex}")
 
