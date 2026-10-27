@@ -1,33 +1,18 @@
 import pandas as pd
 import streamlit as st
 
-# Хуудасны тохиргоо (Монгол нэр, еможи болон өргөн layout)
+# Хуудасны тохиргоо
 st.set_page_config(
     page_title="Хуулга импортлох", page_icon="📄", layout="wide"
 )
 
-# 🌙 Dark Glassmorphism болон Sidebar албаар хар болгох CSS
+# 🌙 Dark Glassmorphism загварын CSS
 st.markdown(
     """
 <style>
-    /* Үндсэн дэвсгэр */
     .stApp {
         background-color: #0f1117;
         color: #ffffff;
-    }
-    
-    /* Зүүн талын цэс (Sidebar) дэвсгэрийг хар өнгөтэй болгох */
-    [data-testid="stSidebar"] {
-        background-color: #1e222d !important;
-    }
-    
-    /* Sidebar доторх бүх текст болон линкүүдийг цагаан болгох */
-    [data-testid="stSidebar"] span, 
-    [data-testid="stSidebar"] p, 
-    [data-testid="stSidebar"] div,
-    [data-testid="stSidebar"] label,
-    [data-testid="stSidebar"] a {
-        color: #ffffff !important;
     }
     
     /* File Uploader үндсэн контейнер */
@@ -70,7 +55,7 @@ st.markdown(
 # Гарчиг
 st.markdown("### 📄 Хуулга импортлох")
 
-# 🏦 Банкны сонголтууд
+# 🏦 Банкны бүх сонголтууд
 bank_options = [
     "Хаан банк",
     "Голомт банк",
