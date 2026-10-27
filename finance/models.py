@@ -37,7 +37,7 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Бусад файлуудаас шаардагдах бүх классуудыг энд зарлаж өгнө (ImportError гарахгүй)
+# Бусад хуудсуудаас дуудаж байгаа бүх классууд (ImportError гарахаас бүрэн сэргийлнэ)
 class Transaction:
     pass
 
@@ -55,6 +55,9 @@ class Bank:
     pass
 
 class Account:
+    pass
+
+class Rule:
     pass
 
 init_db()
