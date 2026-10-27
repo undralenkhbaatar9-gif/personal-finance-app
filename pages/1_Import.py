@@ -13,7 +13,7 @@ lang = st.sidebar.selectbox(
     "Хэл сонгох", ["Монгол", "English"], label_visibility="collapsed"
 )
 
-# 🌙 Dark Glassmorphism загвар (Sidebar болон uploader-ийг хар болгох)
+# 🌙 Dark Glassmorphism загвар
 st.markdown(
     """
 <style>
@@ -21,7 +21,7 @@ st.markdown(
         background-color: #0e1117;
         color: #ffffff;
     }
-    /* Sidebar-ыг албаар хар өнгөтэй болгох */
+    /* Sidebar-ыг хар өнгөтэй байлгах */
     [data-testid="stSidebar"] {
         background-color: #1e222d !important;
     }
@@ -69,7 +69,7 @@ st.markdown(
 if lang == "Монгол":
   title_text = "📄 Банкны хуулга импортлох"
   bank_label = "Банк сонгох"
-  file_label = "-ны хуулгаа сонгоно уу (Excel, CSV)"
+  file_label_text = "{bank}-ны хуулгаа сонгоно уу (Excel, CSV)"
   success_file = "📂 Файл амжилттай орж ирлээ: "
   preview_text = "📋 Уншсан файлын мэдээлэл (Урьдчилсан харагдац):"
   save_btn = "💾 Өгөгдлийн санд хадгалах"
@@ -81,7 +81,7 @@ if lang == "Монгол":
 else:
   title_text = "📄 Import Bank Statement"
   bank_label = "Select Bank"
-  file_label = " statement file (Excel, CSV)"
+  file_label_text = "Select {bank} statement file (Excel, CSV)"
   success_file = "📂 File successfully loaded: "
   preview_text = "📋 File Preview:"
   save_btn = "💾 Save to Database"
@@ -114,7 +114,7 @@ bank_options = [
 
 bank = st.selectbox(bank_label, bank_options)
 
-uploaded_file = st.file_uploader(f"{bank}{file_label}", type=["xlsx", "csv"])
+uploaded_file = st.file_uploader(file_label_text.format(bank=bank), type=["xlsx", "csv"])
 
 if uploaded_file is not None:
   st.success(f"{success_file}{uploaded_file.name}")
