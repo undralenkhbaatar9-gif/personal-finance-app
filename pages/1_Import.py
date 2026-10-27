@@ -1,33 +1,23 @@
 import pandas as pd
 import streamlit as st
 
-# 🌙 Dark Glassmorphism загвар болон File Uploader дизайныг төгс болгох CSS
+# 🌙 Dark Glassmorphism загвар (Sidebar болон үндсэн хэсгийг төгс хар өнгөтэй байлгах)
 st.markdown(
     """
 <style>
     .stApp {
-        background-color: #0e1117;
+        background-color: #0f1117;
         color: #ffffff;
-    }
-    .glass-card {
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 16px;
-        padding: 24px;
-        margin-bottom: 20px;
     }
     
     /* File Uploader үндсэн контейнер */
     [data-testid="stFileUploader"] {
-        background-color: rgba(255, 255, 255, 0.03) !important;
-        border: 1px solid rgba(255, 255, 255, 0.15) !important;
-        border-radius: 12px;
+        background-color: rgba(30, 34, 45, 0.6) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 14px;
         padding: 20px;
     }
     
-    /* File uploader доторх хэсгүүдийн цагаан дэвсгэрийг бүрэн арилгах */
     [data-testid="stFileUploader"] section {
         background-color: transparent !important;
     }
@@ -49,7 +39,7 @@ st.markdown(
     }
     
     [data-testid="stFileUploader"] button:hover {
-        background-color: #2b2d31 !important;
+        background-color: #35383f !important;
         border-color: #10B981 !important;
     }
 </style>
