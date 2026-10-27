@@ -1,11 +1,11 @@
 import streamlit as st
 
-# Хуудасны тохиргоо (Цэсийг хэвээр нь гаргана)
+# Хуудасны тохиргоо (Цэсэнд Монгол нэрээр гарна)
 st.set_page_config(
     page_title="Хуулга импортлох", page_icon="📄", layout="wide"
 )
 
-# File uploader болон элементүүдийг илүү гоё бараан болгох CSS
+# Dark Glassmorphism Custom CSS загвар
 st.markdown(
     """
     <style>
