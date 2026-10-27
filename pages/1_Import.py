@@ -13,7 +13,7 @@ lang = st.sidebar.selectbox(
     "Хэл сонгох", ["Монгол", "English"], label_visibility="collapsed"
 )
 
-# 🌙 Dark Glassmorphism загвар (Банк сонгох хэсгийн өнгийг хар болгож зассан)
+# 🌙 Streamlit-ийн бүх компонентуудыг (selectbox, uploader г.м) хар болгох CSS
 st.markdown(
     """
 <style>
@@ -33,26 +33,29 @@ st.markdown(
         color: #ffffff !important;
     }
     
-    /* Сонголт хийх хэсэг (Selectbox / Dropdown) өнгийг бараан болгох */
-    [data-baseweb="select"] {
-        background-color: #1e222d !important;
-        border-radius: 8px !important;
-    }
-    [data-baseweb="select"] > div {
+    /* Selectbox (Банк сонгох) input болон container-ийг хар болгох */
+    div[data-baseweb="select"] > div {
         background-color: #1e222d !important;
         color: #ffffff !important;
-        border-color: rgba(255, 255, 255, 0.15) !important;
-    }
-    span[data-baseweb="tag"] {
-        background-color: #2b2d31 !important;
+        border-color: rgba(255, 255, 255, 0.2) !important;
     }
     
-    /* Dropdown цэсний доторх бичвэрүүд */
-    div[role="listbox"] div {
+    /* Selectbox доторх сонгогдсон текст */
+    div[data-baseweb="select"] span {
+        color: #ffffff !important;
+    }
+
+    /* Streamlit-ийн өргөтгөсөн dropdown popup цэс */
+    div[data-baseweb="popover"], div[role="listbox"] {
         background-color: #1e222d !important;
         color: #ffffff !important;
     }
-    div[role="listbox"] div:hover {
+    
+    div[role="option"] {
+        background-color: #1e222d !important;
+        color: #ffffff !important;
+    }
+    div[role="option"]:hover {
         background-color: #35383f !important;
     }
 
