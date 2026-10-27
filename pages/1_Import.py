@@ -1,7 +1,7 @@
 import pandas as pd
 import streamlit as st
 
-# 🌙 Dark Glassmorphism загвар (Sidebar болон үндсэн хэсгийг төгс хар өнгөтэй байлгах)
+# 🌙 Dark Glassmorphism Custom CSS (Sidebar ebong page-er color-ke shundor dark rakhbe)
 st.markdown(
     """
 <style>
@@ -10,7 +10,7 @@ st.markdown(
         color: #ffffff;
     }
     
-    /* File Uploader үндсэн контейнер */
+    /* File Uploader container design */
     [data-testid="stFileUploader"] {
         background-color: rgba(30, 34, 45, 0.6) !important;
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
@@ -29,7 +29,7 @@ st.markdown(
         color: #ffffff !important;
     }
     
-    /* Browse files товчлуур */
+    /* Browse files button */
     [data-testid="stFileUploader"] button {
         color: #ffffff !important;
         background-color: #1e222d !important;
@@ -49,7 +49,7 @@ st.markdown(
 
 st.markdown("### 📄 Хуулга импортлох")
 
-# 🏦 Банкны бүх сонголтууд
+# 🏦 Bank options
 bank_options = [
     "Хаан банк",
     "Голомт банк",
