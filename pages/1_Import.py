@@ -1,16 +1,36 @@
 import pandas as pd
 import streamlit as st
 
-# 🌙 Dark Glassmorphism Custom CSS (Sidebar ebong page-er color-ke shundor dark rakhbe)
+# Хуудасны тохиргоо (Монгол нэр, еможи болон өргөн layout)
+st.set_page_config(
+    page_title="Хуулга импортлох", page_icon="📄", layout="wide"
+)
+
+# 🌙 Dark Glassmorphism болон Sidebar албаар хар болгох CSS
 st.markdown(
     """
 <style>
+    /* Үндсэн дэвсгэр */
     .stApp {
         background-color: #0f1117;
         color: #ffffff;
     }
     
-    /* File Uploader container design */
+    /* Зүүн талын цэс (Sidebar) дэвсгэрийг хар өнгөтэй болгох */
+    [data-testid="stSidebar"] {
+        background-color: #1e222d !important;
+    }
+    
+    /* Sidebar доторх бүх текст болон линкүүдийг цагаан болгох */
+    [data-testid="stSidebar"] span, 
+    [data-testid="stSidebar"] p, 
+    [data-testid="stSidebar"] div,
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] a {
+        color: #ffffff !important;
+    }
+    
+    /* File Uploader үндсэн контейнер */
     [data-testid="stFileUploader"] {
         background-color: rgba(30, 34, 45, 0.6) !important;
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
@@ -29,7 +49,7 @@ st.markdown(
         color: #ffffff !important;
     }
     
-    /* Browse files button */
+    /* Browse files товчлуур */
     [data-testid="stFileUploader"] button {
         color: #ffffff !important;
         background-color: #1e222d !important;
@@ -47,9 +67,10 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# Гарчиг
 st.markdown("### 📄 Хуулга импортлох")
 
-# 🏦 Bank options
+# 🏦 Банкны сонголтууд
 bank_options = [
     "Хаан банк",
     "Голомт банк",
@@ -62,6 +83,7 @@ bank_options = [
 
 bank = st.selectbox("Банк сонгох", bank_options)
 
+# Файл оруулах хэсэг
 uploaded_file = st.file_uploader(
     f"{bank}-ны хуулгаа сонгоно уу (Excel, CSV)", type=["xlsx", "csv"]
 )
