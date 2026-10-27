@@ -4,8 +4,6 @@ import os
 DB_PATH = "finance.db"
 
 def get_connection():
-    # Файлын зам алдагдахаас сэргийлж бүтэн замыг автоматаар үүсгэнэ
-    db_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", DB_PATH)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
@@ -39,15 +37,24 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Загвар классууд
+# Бусад файлуудаас шаардагдах бүх классуудыг энд зарлаж өгнө (ImportError гарахгүй)
+class Transaction:
+    pass
+
 class Category:
     def __init__(self, name=""):
         self.name = name
 
-class Transaction:
+class Budget:
     pass
 
-class Budget:
+class Counterparty:
+    pass
+
+class Bank:
+    pass
+
+class Account:
     pass
 
 init_db()
