@@ -13,7 +13,7 @@ lang = st.sidebar.selectbox(
     "Хэл сонгох", ["Монгол", "English"], label_visibility="collapsed"
 )
 
-# 🌙 Dark Glassmorphism загвар
+# 🌙 Dark Glassmorphism загвар (Банк сонгох хэсгийн өнгийг хар болгож зассан)
 st.markdown(
     """
 <style>
@@ -33,6 +33,29 @@ st.markdown(
         color: #ffffff !important;
     }
     
+    /* Сонголт хийх хэсэг (Selectbox / Dropdown) өнгийг бараан болгох */
+    [data-baseweb="select"] {
+        background-color: #1e222d !important;
+        border-radius: 8px !important;
+    }
+    [data-baseweb="select"] > div {
+        background-color: #1e222d !important;
+        color: #ffffff !important;
+        border-color: rgba(255, 255, 255, 0.15) !important;
+    }
+    span[data-baseweb="tag"] {
+        background-color: #2b2d31 !important;
+    }
+    
+    /* Dropdown цэсний доторх бичвэрүүд */
+    div[role="listbox"] div {
+        background-color: #1e222d !important;
+        color: #ffffff !important;
+    }
+    div[role="listbox"] div:hover {
+        background-color: #35383f !important;
+    }
+
     /* File Uploader загвар */
     [data-testid="stFileUploader"] {
         background-color: rgba(255, 255, 255, 0.03) !important;
