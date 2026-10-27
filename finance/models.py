@@ -1,9 +1,11 @@
 import sqlite3
-from datetime import datetime
+import os
 
 DB_PATH = "finance.db"
 
 def get_connection():
+    # Файлын зам алдагдахаас сэргийлж бүтэн замыг автоматаар үүсгэнэ
+    db_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", DB_PATH)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
@@ -12,20 +14,20 @@ def init_db():
     conn = get_connection()
     cursor = conn.cursor()
     
-    # Банкны мэдээлэл болон ангилалтай гүйлгээний хүснэгт
+    # Гүйлгээний хүснэгт
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS transactions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             date TEXT NOT NULL,
             description TEXT NOT NULL,
             amount REAL NOT NULL,
-            type TEXT NOT NULL, -- 'Income' or 'Expense'
+            type TEXT NOT NULL,
             category TEXT DEFAULT 'Ангилаагүй',
             bank_name TEXT DEFAULT 'Үндсэн банк'
         )
     ''')
     
-    # Төсөв төлөвлөгөөний хүснэгт (Budget)
+    # Төсвийн хүснэгт
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS budgets (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -37,5 +39,15 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Эхлүүлж шалгах
+# Загвар классууд
+class Category:
+    def __init__(self, name=""):
+        self.name = name
+
+class Transaction:
+    pass
+
+class Budget:
+    pass
+
 init_db()
