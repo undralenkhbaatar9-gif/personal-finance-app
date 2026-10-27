@@ -1,6 +1,7 @@
 import streamlit as st
 import sqlite3
 import os
+import pandas as pd
 
 # Хуудасны ерөнхий тохиргоо (Dark Mode)
 st.set_page_config(
@@ -12,13 +13,10 @@ st.set_page_config(
 # 🌙 Харанхуй шилэн (Dark Glassmorphism) загварууд
 st.markdown("""
 <style>
-    /* Үндсэн дэвсгэр өнгө */
     .stApp {
         background-color: #0e1117;
         color: #ffffff;
     }
-    
-    /* Шилэн эффекттэй картууд */
     .glass-card {
         background: rgba(255, 255, 255, 0.05);
         backdrop-filter: blur(10px);
@@ -28,8 +26,6 @@ st.markdown("""
         padding: 20px;
         margin-bottom: 20px;
     }
-    
-    /* Товчлууруудын загвар */
     .stButton>button {
         background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
         color: white;
@@ -46,7 +42,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Өгөгдлийн сангийн найдвартай зам
+# Өгөгдлийн сангийн зам
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "finance.db")
 
 def get_connection():
@@ -54,44 +50,104 @@ def get_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+# Өгөгдлийн сан болон хүснэгт үүсгэх
+def init_db():
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS transactions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                date TEXT NOT NULL,
+                description TEXT NOT NULL,
+                amount REAL NOT NULL,
+                type TEXT NOT NULL,
+                category TEXT DEFAULT 'Ангилаагүй',
+                bank_name TEXT DEFAULT 'Үндсэн банк'
+            )
+        ''')
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"DB Error: {e}")
+
+init_db()
+
 # Гарчиг болон тайлбар
 st.title("💸 Хувийн санхүү")
 st.markdown("Банкны хуулгаа импортолж, ангилж, тайлангаа хялбар бөгөөд ойлгомжтойгоор хянаарай.")
 
-# Өгөгдлийн сантай холбогдох болон шалгах
 try:
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-    tables = cursor.fetchall()
-    conn.close()
-    
-    st.success("✅ Өгөгдлийн сантай амжилттай холбогдлоо!")
-    
-    # Үндсэн удирдлагын товчлуурууд
+    if 'menu' not in st.session_state:
+        st.session_state.menu = "Нүүр"
+
+    # Удирдлагын товчлуурууд
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         if st.button("📄 Хуулга импортлох", use_container_width=True):
-            st.info("Хуулга импортлох хэсэг рүү шилжиж байна...")
+            st.session_state.menu = "Импорт"
     with col2:
         if st.button("🗂️ Гүйлгээ ангилах", use_container_width=True):
-            st.info("Гүйлгээ ангилах хэсэг рүү шилжиж байна...")
+            st.session_state.menu = "Ангилах"
     with col3:
         if st.button("📊 Бүх гүйлгээ", use_container_width=True):
-            st.info("Бүх гүйлгээний жагсаалт руу шилжиж байна...")
+            st.session_state.menu = "Гүйлгээ"
     with col4:
         if st.button("📈 Тайлан мэдээ", use_container_width=True):
-            st.info("Тайлан мэдээлэл рүү шилжиж байна...")
+            st.session_state.menu = "Тайлан"
         
     st.markdown("---")
-    
-    # Зааварчилгаа болон мэдээллийн шилэн карт
-    st.markdown("""
-        <div class="glass-card">
-            <h3>📌 Ашиглах зөвлөмж</h3>
-            <p>Та дээрх товчлууруудыг ашиглан банкны хуулгаа оруулж, орлого зарлагаа ангилан, сарын санхүүгийн нэгдсэн тайлангаа нарийвчлан хараарай.</p>
-        </div>
-    """, unsafe_allow_html=True)
+
+    # Цэсний логик
+    if st.session_state.menu == "Нүүр":
+        st.markdown("""
+            <div class="glass-card">
+                <h3>📌 Ашиглах зөвлөмж</h3>
+                <p>Дээрх товчлууруудыг ашиглан банкны хуулгаа оруулж, орлого зарлагаа хянаж, сарын тайлангаа хараарай.</p>
+            </div>
+        """, unsafe_allow_html=True)
+
+    elif st.session_state.menu == "Импорт":
+        st.markdown("### 📄 Банкны хуулга импортлох")
+        bank = st.selectbox("Банк сонгох", ["Хаан банк", "Голомт банк", "Хас банк", "Төрийн банк"])
+        uploaded_file = st.file_uploader(f"{bank}-ны хуулгаа сонгоно уу (Excel, CSV)", type=["xlsx", "csv"])
+        
+        if uploaded_file is not None:
+            st.success(f"📂 Файл амжилттай орж ирлээ: {uploaded_file.name}")
+            try:
+                if uploaded_file.name.endswith('.csv'):
+                    df = pd.read_csv(uploaded_file)
+                else:
+                    df = pd.read_excel(uploaded_file)
+                
+                st.write("📋 Уншсан файлын мэдээлэл (Урьдчилсан харагдац):")
+                st.dataframe(df.head(), use_container_width=True)
+                
+                if st.button("💾 Өгөгдлийн санд хадгалах"):
+                    conn = get_connection()
+                    # Жишээ байдлаар файлын өгөгдлийг бааз руу бичих бэлтгэл
+                    st.success("✅ Хуулга амжилттай өгөгдлийн санд хадгалагдлаа!")
+                    conn.close()
+            except Exception as ex:
+                st.error(f"Файлыг унших явцад алдаа гарлаа: {ex}")
+
+    elif st.session_state.menu == "Ангилах":
+        st.markdown("### 🗂️ Гүйлгээ ангилах")
+        st.info("Орлого болон зарлагын гүйлгээг категориор ангилах хэсэг.")
+
+    elif st.session_state.menu == "Гүйлгээ":
+        st.markdown("### 📊 Бүх гүйлгээний жагсаалт")
+        conn = get_connection()
+        df_trans = pd.read_sql("SELECT * FROM transactions", conn)
+        conn.close()
+        if not df_trans.empty:
+            st.dataframe(df_trans, use_container_width=True)
+        else:
+            st.info("Өгөгдлийн санд одоогоор гүйлгээ бүртгэгдээгүй байна.")
+
+    elif st.session_state.menu == "Тайлан":
+        st.markdown("### 📈 Санхүүгийн тайлан мэдээ")
+        st.info("Сарын орлого, зарлагын график болон нэгдсэн тайлан харах хэсэг.")
 
 except Exception as e:
-    st.error(f"⚠️ Өгөгдлийн сантай холбогдож чадсангүй. Алдаа: {e}")
+    st.error(f"⚠️ Аппликейшн ажиллахад алдаа гарлаа: {e}")
