@@ -1,11 +1,6 @@
 import streamlit as st
 
-# Хуудасны тохиргоо (Хамгийн эхэнд байх ёстой)
-st.set_page_config(
-    page_title="Хуулга импортлох", page_icon="📄", layout="wide"
-)
-
-# Dark Glassmorphism Custom CSS загвар
+# Dark Glassmorphism Custom CSS загвар (pages хуудас дээр set_page_config ашиглахгүй)
 st.markdown(
     """
     <style>
@@ -85,7 +80,6 @@ if uploaded_file is not None:
     st.success(
         f"Файл амжилттай орж ирлээ: **{uploaded_file.name}**", icon="✅"
     )
-    # Энд дата унших болон боловсруулах логикоо бичиж болно
 
 st.write("")
 st.markdown("---")
