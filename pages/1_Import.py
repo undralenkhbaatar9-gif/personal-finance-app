@@ -7,7 +7,13 @@ st.set_page_config(
     page_title="Хуулга импортлох", page_icon="📄", layout="wide"
 )
 
-# 🌙 Dark Glassmorphism загвар
+# --- ХЭЛ СОНГОГЧ (Sidebar) ---
+st.sidebar.markdown("### 🌐 Дэлгэцийн хэл / Language")
+lang = st.sidebar.selectbox(
+    "Хэл сонгох", ["Монгол", "English"], label_visibility="collapsed"
+)
+
+# 🌙 Dark Glassmorphism загвар (Sidebar болон uploader-ийг хар болгох)
 st.markdown(
     """
 <style>
@@ -15,17 +21,19 @@ st.markdown(
         background-color: #0e1117;
         color: #ffffff;
     }
-    .glass-card {
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 20px;
+    /* Sidebar-ыг албаар хар өнгөтэй болгох */
+    [data-testid="stSidebar"] {
+        background-color: #1e222d !important;
+    }
+    [data-testid="stSidebar"] span, 
+    [data-testid="stSidebar"] p, 
+    [data-testid="stSidebar"] div,
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] a {
+        color: #ffffff !important;
     }
     
-    /* File Uploader styling */
+    /* File Uploader загвар */
     [data-testid="stFileUploader"] {
         background-color: rgba(255, 255, 255, 0.03) !important;
         border: 1px solid rgba(255, 255, 255, 0.15) !important;
@@ -57,7 +65,31 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Өгөгдлийн сангийн холболт (Үндсэн фолдер доторх finance.db рүү зөв заах)
+# --- ОРЧУУЛГА ---
+if lang == "Монгол":
+  title_text = "📄 Банкны хуулга импортлох"
+  bank_label = "Банк сонгох"
+  file_label = "-ны хуулгаа сонгоно уу (Excel, CSV)"
+  success_file = "📂 Файл амжилттай орж ирлээ: "
+  preview_text = "📋 Уншсан файлын мэдээлэл (Урьдчилсан харагдац):"
+  save_btn = "💾 Өгөгдлийн санд хадгалах"
+  save_success = (
+      "✅ Нийт {count} гүйлгээ амжилттай өгөгдлийн санд хадгалагдлаа!"
+  )
+  prev_imports = "Өмнөх импортууд"
+  no_history = "Импортын түүхийг одоогоор харуулах боломжгүй байна."
+else:
+  title_text = "📄 Import Bank Statement"
+  bank_label = "Select Bank"
+  file_label = " statement file (Excel, CSV)"
+  success_file = "📂 File successfully loaded: "
+  preview_text = "📋 File Preview:"
+  save_btn = "💾 Save to Database"
+  save_success = "✅ Total {count} transactions successfully saved!"
+  prev_imports = "Previous Imports"
+  no_history = "Import history is currently unavailable."
+
+# Database path
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(ROOT_DIR, "finance.db")
 
@@ -68,7 +100,7 @@ def get_connection():
   return conn
 
 
-st.markdown("### 📄 Банкны хуулга импортлох")
+st.markdown(f"### {title_text}")
 
 bank_options = [
     "Хаан банк",
@@ -80,30 +112,27 @@ bank_options = [
     "Богд банк",
 ]
 
-bank = st.selectbox("Банк сонгох", bank_options)
+bank = st.selectbox(bank_label, bank_options)
 
-uploaded_file = st.file_uploader(
-    f"{bank}-ны хуулгаа сонгоно уу (Excel, CSV)", type=["xlsx", "csv"]
-)
+uploaded_file = st.file_uploader(f"{bank}{file_label}", type=["xlsx", "csv"])
 
 if uploaded_file is not None:
-  st.success(f"📂 Файл амжилттай орж ирлээ: {uploaded_file.name}")
+  st.success(f"{success_file}{uploaded_file.name}")
   try:
     if uploaded_file.name.endswith(".csv"):
       df = pd.read_csv(uploaded_file)
     else:
       df = pd.read_excel(uploaded_file)
 
-    st.markdown("#### 📋 Уншсан файлын мэдээлэл (Урьдчилсан харагдац)")
+    st.markdown(f"#### {preview_text}")
     st.dataframe(df.head(), use_container_width=True)
 
-    if st.button("💾 Өгөгдлийн санд хадгалах"):
+    if st.button(save_btn):
       conn = get_connection()
       cursor = conn.cursor()
 
       saved_count = 0
       for _, row in df.iterrows():
-        # Файлын эхний багануудыг өгөгдлийн сантай автоматаар холбох
         date_val = str(row.iloc[0]) if len(row) > 0 else "2026-01-01"
         desc_val = str(row.iloc[1]) if len(row) > 1 else "Гүйлгээ"
         amount_val = (
@@ -131,13 +160,11 @@ if uploaded_file is not None:
 
       conn.commit()
       conn.close()
-      st.success(
-          f"✅ Нийт {saved_count} гүйлгээ амжилттай өгөгдлийн санд хадгалагдлаа!"
-      )
+      st.success(save_success.format(count=saved_count))
 
   except Exception as ex:
-    st.error(f"Файлыг унших болон хадгалах явцад алдаа гарлаа: {ex}")
+    st.error(f"Error: {ex}")
 
 st.markdown("---")
-st.markdown("### Өмнөх импортууд")
-st.info("Импортын түүхийг одоогоор харуулах боломжгүй байна.")
+st.markdown(f"### {prev_imports}")
+st.info(no_history)
