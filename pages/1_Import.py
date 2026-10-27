@@ -1,6 +1,11 @@
 import streamlit as st
 
-# Dark Glassmorphism Custom CSS загвар (pages хуудас дээр set_page_config ашиглахгүй)
+# Хуудасны нэр болон тохиргоо (Энэ нь зүүн талын цэсийг буцааж гаргана)
+st.set_page_config(
+    page_title="Хуулга импортлох", page_icon="📄", layout="wide"
+)
+
+# Dark Glassmorphism Custom CSS загвар
 st.markdown(
     """
     <style>
