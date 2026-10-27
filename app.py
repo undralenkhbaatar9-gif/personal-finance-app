@@ -1,41 +1,70 @@
 import streamlit as st
+import sqlite3
+import os
 import pandas as pd
 
-st.markdown("### 📄 Хуулга импортлох")
+st.set_page_config(
+    page_title="Хувийн санхүү",
+    page_icon="💰",
+    layout="wide"
+)
 
-# Банкны сонголтуудыг бүрэн оруулах
-bank_options = [
-    "Хаан банк", 
-    "Голомт банк", 
-    "Хас банк", 
-    "Төрийн банк", 
-    "Голомт банк", 
-    "ХХБ (Голомт/Худалдаа хөгжлийн банк)", 
-    "Ариг банк", 
-    "Богд банк"
-]
+# 🌙 Dark Glassmorphism загвар
+st.markdown("""
+<style>
+    .stApp {
+        background-color: #0e1117;
+        color: #ffffff;
+    }
+    .glass-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-bank = st.selectbox("Банк сонгох", bank_options)
+# Өгөгдлийн сангийн холболт
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "finance.db")
 
-# Сонгосон банкны дагуу файлын нэр болон чиглүүлэгч
-uploaded_file = st.file_uploader(f"{bank}-ны хуулгаа сонгоно уу (Excel, CSV)", type=["xlsx", "csv"])
+def get_connection():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
 
-if uploaded_file is not None:
-    st.success(f"📂 Файл амжилттай орж ирлээ: {uploaded_file.name}")
+def init_db():
     try:
-        if uploaded_file.name.endswith('.csv'):
-            df = pd.read_csv(uploaded_file)
-        else:
-            df = pd.read_excel(uploaded_file)
-        
-        st.write("📋 Уншсан файлын мэдээлэл (Урьдчилсан харагдац):")
-        st.dataframe(df.head(), use_container_width=True)
-        
-        if st.button("💾 Өгөгдлийн санд хадгалах"):
-            st.success("✅ Хуулга амжилттай өгөгдлийн санд хадгалагдлаа!")
-    except Exception as ex:
-        st.error(f"Файлыг унших явцад алдаа гарлаа: {ex}")
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS transactions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                date TEXT NOT NULL,
+                description TEXT NOT NULL,
+                amount REAL NOT NULL,
+                type TEXT NOT NULL,
+                category TEXT DEFAULT 'Ангилаагүй',
+                bank_name TEXT DEFAULT 'Үндсэн банк'
+            )
+        ''')
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"DB Error: {e}")
 
-st.markdown("---")
-st.markdown("### Өмнөх импортууд")
-st.info("Импортын түүхийг одоогоор харуулах боломжгүй байна.")
+init_db()
+
+# 📊 Dashboard (Нүүр хуудас)
+st.title("💸 Хувийн санхүү - Хяналтын самбар")
+st.markdown("Банкны хуулгаа импортолж, орлого зарлагаа хялбар бөгөөд ойлгомжтойгоор хянаарай.")
+
+st.markdown("""
+    <div class="glass-card">
+        <h3>📌 Тавтай морилно уу!</h3>
+        <p>Зүүн талын цэснээс <b>Хуулга импортлох</b> болон бусад хэсгийг сонгон ажиллана уу.</p>
+    </div>
+""", unsafe_allow_html=True)
