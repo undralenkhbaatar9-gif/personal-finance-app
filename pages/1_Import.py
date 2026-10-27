@@ -13,7 +13,7 @@ lang = st.sidebar.selectbox(
     "Хэл сонгох", ["Монгол", "English"], label_visibility="collapsed"
 )
 
-# 🌙 Streamlit-ийн бүх компонентуудыг (selectbox, uploader г.м) хар болгох CSS
+# 🌙 Dark Glassmorphism загвар (Банк сонгох бичвэрийг цагаан болгосон)
 st.markdown(
     """
 <style>
@@ -33,19 +33,23 @@ st.markdown(
         color: #ffffff !important;
     }
     
-    /* Selectbox (Банк сонгох) input болон container-ийг хар болгох */
+    /* "Банк сонгох" гэсэн шошго (label) болон бичвэрийг цагаан болгох */
+    .stSelectbox label p, label {
+        color: #ffffff !important;
+    }
+    
+    /* Selectbox container styling */
     div[data-baseweb="select"] > div {
         background-color: #1e222d !important;
         color: #ffffff !important;
         border-color: rgba(255, 255, 255, 0.2) !important;
     }
     
-    /* Selectbox доторх сонгогдсон текст */
     div[data-baseweb="select"] span {
         color: #ffffff !important;
     }
 
-    /* Streamlit-ийн өргөтгөсөн dropdown popup цэс */
+    /* Dropdown popup цэс */
     div[data-baseweb="popover"], div[role="listbox"] {
         background-color: #1e222d !important;
         color: #ffffff !important;
