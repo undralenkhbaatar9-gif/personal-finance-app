@@ -1,157 +1,17 @@
-from datetime import date, timedelta
-from decimal import Decimal
+import sqlite3
+import os
 
-import plotly.express as px
-import streamlit as st
-from sqlalchemy import func, select, text
+# Өгөгдлийн сангийн үнэн зөв замыг зааж өгөх
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "finance.db")
 
-from finance.db import get_session
-from finance.models import Category, Transaction
-from finance.reports import expense_by_category, monthly_summary
-from finance.ui import apply_global_styles, render_footer, style_plotly_chart
-
-st.set_page_config(page_title="Санхүү", page_icon=":material/account_balance_wallet:", layout="wide")
-
-
-def dashboard() -> None:
-	apply_global_styles()
-	st.title("Хувийн санхүү")
-	st.caption("Банкны хуулгаа импортолж, ангилж, тайлангаа хянаарай.")
-
-	navigation = st.columns(4, vertical_alignment="center")
-	navigation[0].page_link(page_import, label="Хуулга импортлох", icon=":material/upload_file:")
-	navigation[1].page_link(page_review, label="Гүйлгээ ангилах", icon=":material/rule:")
-	navigation[2].page_link(page_txns, label="Бүх гүйлгээ", icon=":material/list_alt:")
-	navigation[3].page_link(page_reports, label="Тайлан мэдээ", icon=":material/monitoring:")
-
-	today = date.today()
-	month_start = today - timedelta(days=179)
-	recent_start = today - timedelta(days=29)
-	try:
-		with st.spinner("Хянах самбарын мэдээллийг ачаалж байна..."):
-			with get_session() as session:
-				session.execute(text("SELECT 1"))
-				income = session.scalar(
-					select(func.coalesce(func.sum(Transaction.amount), 0))
-					.join(Category, Category.id == Transaction.category_id)
-					.where(
-						Transaction.txn_datetime >= recent_start,
-						Transaction.amount > 0,
-						Category.kind == "income",
-						Category.in_reports.is_(True),
-					)
-				) or Decimal("0.00")
-				expense = session.scalar(
-					select(func.coalesce(func.sum(func.abs(Transaction.amount)), 0))
-					.join(Category, Category.id == Transaction.category_id)
-					.where(
-						Transaction.txn_datetime >= recent_start,
-						Transaction.amount < 0,
-						Category.kind == "expense",
-						Category.in_reports.is_(True),
-					)
-				) or Decimal("0.00")
-				unclassified = session.scalar(
-					select(func.count()).select_from(Transaction).where(Transaction.category_id.is_(None))
-				) or 0
-				monthly = monthly_summary(session, month_start, today)
-				category_expenses = expense_by_category(session, month_start, today)
-
-		net = income - expense
-		with st.container(key="finance-dashboard-kpis", horizontal=True):
-			st.metric("Орлого (Сүүлийн 30 өдөр)", f"{income:,.2f} ₮", border=True)
-			st.metric("Зарлага (Сүүлийн 30 өдөр)", f"{expense:,.2f} ₮", border=True)
-			st.metric("Цэвэр ашиг / Мөнгөн урсгал", f"{net:,.2f} ₮", border=True)
-			st.metric("Ангилах шаардлагатай", f"{unclassified:,}", border=True)
-
-		chart_column, category_column = st.columns(2, gap="large")
-		with chart_column:
-			st.subheader("Сар бүрийн мөнгөн урсгал")
-			if monthly.empty:
-				st.info("Сар бүрийн орлого, зарлагыг харахын тулд банкны хуулгаа импортлоорой.")
-			else:
-				chart_data = monthly.rename(
-					columns={"income": "Орлого", "expense": "Зарлага"}
-				)
-				chart = px.bar(
-					chart_data,
-					x="month",
-					y=["Орлого", "Зарлага"],
-					barmode="group",
-					labels={"month": "Сар", "value": "₮", "variable": "Орлого, зарлага"},
-					color_discrete_map={"Орлого": "#55e39f", "Зарлага": "#ff789b"},
-				)
-				chart.update_layout(legend_title_text="", hovermode="x unified")
-				chart = style_plotly_chart(chart)
-				st.plotly_chart(chart, alt="Сүүлийн зургаан сарын орлого ба зарлагын харьцуулалт")
-
-		with category_column:
-			st.subheader("Ангиллаарх зарлага")
-			if category_expenses.empty:
-				st.info("Сүүлийн 6 сард ангилагдсан зарлагын гүйлгээ одоогоор алга байна.")
-			else:
-				chart_data = category_expenses.head(8).copy()
-				chart = px.bar(
-					chart_data.sort_values("amount"),
-					x="amount",
-					y="category",
-					orientation="h",
-					labels={"amount": "Дүн (₮)", "category": "Ангилал"},
-					color_discrete_sequence=["#36e2cc"],
-				)
-				chart.update_layout(yaxis_title="")
-				chart = style_plotly_chart(chart)
-				st.plotly_chart(chart, alt="Сүүлийн зургаан сарын зарлага ангиллаар")
-	except Exception as error:
-		st.error(
-			"Өгөгдлийн сантай холбогдож чадсангүй. Холболтын тохиргоо болон сангийн эхлүүлэлтийг шалгана уу.",
-			title="Өгөгдлийн сангийн алдаа",
-		)
-
-	render_footer()
-
-
-page_dashboard = st.Page(
-	dashboard,
-	title="Хянах самбар",
-	icon=":material/home:",
-	default=True,
-)
-page_import = st.Page(
-	"pages/1_Import.py",
-	title="Хуулга импортлох",
-	icon=":material/upload_file:",
-)
-page_review = st.Page(
-	"pages/2_Review.py",
-	title="Гүйлгээ ангилах",
-	icon=":material/rule:",
-)
-page_txns = st.Page(
-	"pages/3_Transactions.py",
-	title="Бүх гүйлгээ",
-	icon=":material/list_alt:",
-)
-page_reports = st.Page(
-	"pages/4_Reports.py",
-	title="Тайлан мэдээ",
-	icon=":material/monitoring:",
-)
-page_settings = st.Page(
-	"pages/5_Settings.py",
-	title="Тохиргоо",
-	icon=":material/settings:",
-)
-
-pg = st.navigation(
-	[
-		page_dashboard,
-		page_import,
-		page_review,
-		page_txns,
-		page_reports,
-		page_settings,
-	],
-	position="sidebar",
-)
-pg.run()
+def check_db_connection():
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = cursor.fetchall()
+        conn.close()
+        return True, tables
+    except Exception as e:
+        return False, str(e)
