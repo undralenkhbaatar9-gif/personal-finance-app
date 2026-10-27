@@ -3,12 +3,14 @@ import sqlite3
 import os
 import pandas as pd
 
+# Хуудасны ерөнхий тохиргоо (Dark Mode)
 st.set_page_config(
     page_title="Хувийн санхүү",
     page_icon="💰",
     layout="wide"
 )
 
+# 🌙 Харанхуй шилэн (Dark Glassmorphism) загварууд болон File Uploader товчлуурын өнгөний засаг
 st.markdown("""
 <style>
     .stApp {
@@ -37,7 +39,8 @@ st.markdown("""
         opacity: 0.9;
         transform: translateY(-2px);
     }
-    /* File uploader styling fix */
+    
+    /* File uploader container styling */
     [data-testid="stFileUploader"] {
         background-color: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.15);
@@ -50,15 +53,21 @@ st.markdown("""
     [data-testid="stFileUploader"] span, [data-testid="stFileUploader"] small, [data-testid="stFileUploader"] div {
         color: #ffffff !important;
     }
-    /* Upload button explicit color fix */
+    
+    /* 🛠️ Upload товчлуурын бичвэрийг тод хар өнгөтэй болгох */
     [data-testid="stFileUploader"] button {
-        color: #000000 !important;
-        background-color: #f8fafc !important;
-        font-weight: bold;
+        color: #0f172a !important;
+        background-color: #ffffff !important;
+        font-weight: 700 !important;
+        border: 1px solid #cbd5e1 !important;
+    }
+    [data-testid="stFileUploader"] button * {
+        color: #0f172a !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
+# Өгөгдлийн сангийн зам
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "finance.db")
 
 def get_connection():
@@ -88,6 +97,7 @@ def init_db():
 
 init_db()
 
+# Гарчиг болон тайлбар
 st.title("💸 Хувийн санхүү")
 st.markdown("Банкны хуулгаа импортолж, ангилж, тайлангаа хялбар бөгөөд ойлгомжтойгоор хянаарай.")
 
@@ -95,6 +105,7 @@ try:
     if 'menu' not in st.session_state:
         st.session_state.menu = "Нүүр"
 
+    # Удирдлагын товчлуурууд
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         if st.button("📄 Хуулга импортлох", use_container_width=True):
@@ -111,6 +122,7 @@ try:
         
     st.markdown("---")
 
+    # Цэсний логик
     if st.session_state.menu == "Нүүр":
         st.markdown("""
             <div class="glass-card">
