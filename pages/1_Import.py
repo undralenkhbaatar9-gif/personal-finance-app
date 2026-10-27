@@ -1,26 +1,20 @@
 import streamlit as st
 
-# Хуудасны нэр болон тохиргоо (Энэ нь зүүн талын цэсийг буцааж гаргана)
+# Хуудасны тохиргоо
 st.set_page_config(
     page_title="Хуулга импортлох", page_icon="📄", layout="wide"
 )
 
-# Dark Glassmorphism Custom CSS загвар
+# Dark Glassmorphism Custom CSS (Цэсэнд нөлөөлөхгүйгээр зөвхөн контент хэсгийг тохируулах)
 st.markdown(
     """
     <style>
-    /* Ерөнхий дэвсгэр болон фонт */
-    .stApp {
-        background-color: #0f1117;
-        color: #ffffff;
-    }
-    
-    /* Гарчиг болон текстүүд */
+    /* Үндсэн фонт болон гарчиг */
     h1, h2, h3, h4, h5, h6, p, span, label {
         color: #ffffff !important;
     }
 
-    /* Selectbox (Банк сонгох) загвар */
+    /* Selectbox загвар */
     .stSelectbox div[data-baseweb="select"] {
         background-color: #1e222d !important;
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
@@ -28,7 +22,7 @@ st.markdown(
         color: #ffffff !important;
     }
 
-    /* File uploader хэсгийн дизайн */
+    /* File uploader хэсэг */
     .stFileUploader {
         background: rgba(30, 34, 45, 0.6);
         border: 1px solid rgba(255, 255, 255, 0.1);
@@ -36,7 +30,7 @@ st.markdown(
         padding: 20px;
     }
     
-    /* Browse files товч */
+    /* Upload товч */
     .stFileUploader section button {
         background-color: #2b2d31 !important;
         color: #ffffff !important;
@@ -49,7 +43,7 @@ st.markdown(
         border-color: #10B981 !important;
     }
 
-    /* Өмнөх импорт хэсгийн контейнер */
+    /* Импортын түүх хайрцаг */
     .import-history-box {
         background: rgba(30, 34, 45, 0.4);
         border: 1px solid rgba(255, 255, 255, 0.08);
