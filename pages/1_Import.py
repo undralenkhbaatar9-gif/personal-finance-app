@@ -13,42 +13,42 @@ lang = st.sidebar.selectbox(
     "Хэл сонгох", ["Монгол", "English"], label_visibility="collapsed"
 )
 
-# --- БАНКНЫ АЛБАН ЁСНЫ ӨНГӨ БОЛОН ВЕКТОР ЛОГОНУУД ---
+# --- БАНКНЫ АЛБАН ЁСНЫ SVG ЛОГОНУУД ---
 bank_styles = {
     "Хаан банк": {
         "color": "#006A4E",
         "bg_glow": "rgba(0, 106, 78, 0.15)",
-        "svg_logo": '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" fill="#006A4E"/><path d="M12 6c-2 0-4 2-4 4s2 4 4 4 4-2 4-4-2-4-4-4zm0 11c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z" fill="white"/></svg>'
+        "svg_logo": '<svg width="38" height="38" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#006A4E"/><path d="M50 20C33.43 20 20 33.43 20 50s13.43 30 30 30 30-13.43 30-30S66.57 20 50 20zm0 52c-12.15 0-22-9.85-22-22s9.85-22 22-22 22 9.85 22 22-9.85 22-22 22z" fill="white"/><circle cx="50" cy="50" r="10" fill="white"/></svg>'
     },
     "Голомт банк": {
         "color": "#004B87",
         "bg_glow": "rgba(0, 75, 135, 0.15)",
-        "svg_logo": '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="24" rx="4" fill="#004B87"/><path d="M7 7h10v3H10v4h7v3H7V7z" fill="#FFD100"/></svg>'
+        "svg_logo": '<svg width="38" height="38" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="16" fill="#004B87"/><path d="M30 30h40v12H42v16h28v12H30V30z" fill="#FFD100"/></svg>'
     },
     "Хас банк": {
         "color": "#FF6B00",
         "bg_glow": "rgba(255, 107, 0, 0.15)",
-        "svg_logo": '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="24" rx="4" fill="#001F5B"/><path d="M12 4l2.5 5.5L20 12l-5.5 2.5L12 20l-2.5-5.5L4 12l5.5-2.5L12 4z" fill="#FF6B00"/></svg>'
+        "svg_logo": '<svg width="38" height="38" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="16" fill="#001F5B"/><path d="M50 22L70 50L50 78L30 50L50 22Z" fill="#FF6B00"/></svg>'
     },
     "Төрийн банк": {
         "color": "#009EE0",
         "bg_glow": "rgba(0, 158, 224, 0.15)",
-        "svg_logo": '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="24" rx="6" fill="#009EE0"/><path d="M12 6v12M9 9h6" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>'
+        "svg_logo": '<svg width="38" height="38" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="16" fill="#009EE0"/><path d="M50 25C40 25 35 35 35 45c0 10 15 30 15 30s15-20 15-30c0-10-5-20-15-20z" fill="white"/><circle cx="50" cy="42" r="6" fill="#009EE0"/></svg>'
     },
     "ХХБ (Худалдаа хөгжлийн банк)": {
         "color": "#0072CE",
         "bg_glow": "rgba(0, 114, 206, 0.15)",
-        "svg_logo": '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" fill="#0072CE"/><path d="M8 12h8M12 8v8" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>'
+        "svg_logo": '<svg width="38" height="38" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#0072CE"/><path d="M35 50h30M50 35v30" stroke="white" stroke-width="8" stroke-linecap="round"/></svg>'
     },
     "Ариг банк": {
         "color": "#8E44AD",
         "bg_glow": "rgba(142, 68, 173, 0.15)",
-        "svg_logo": '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" fill="#8E44AD"/><path d="M8 14L12 8L16 14H8Z" fill="white"/></svg>'
+        "svg_logo": '<svg width="38" height="38" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#8E44AD"/><polygon points="50,25 25,75 75,75" fill="white"/></svg>'
     },
     "Богд банк": {
         "color": "#D4AC0D",
         "bg_glow": "rgba(212, 172, 13, 0.15)",
-        "svg_logo": '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="24" rx="6" fill="#D4AC0D"/><path d="M12 7L15 12H9L12 7Z" fill="white"/></svg>'
+        "svg_logo": '<svg width="38" height="38" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="16" fill="#D4AC0D"/><path d="M50 28L72 68H28L50 28Z" fill="white"/></svg>'
     },
 }
 
@@ -144,7 +144,7 @@ st.markdown(f"""
     }}
     .bank-logo-container {{
         background: rgba(255, 255, 255, 0.08);
-        padding: 8px;
+        padding: 6px;
         border-radius: 12px;
         display: flex;
         align-items: center;
@@ -181,7 +181,7 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-# --- БАНКНЫ БАННЕР (Нэг мөрөөр бичсэн SVG логогоор) ---
+# --- БАНКНЫ БАННЕР ---
 banner_html = f"""
 <div class="bank-banner">
     <div class="bank-logo-container">
