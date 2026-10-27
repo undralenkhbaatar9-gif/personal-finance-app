@@ -52,6 +52,7 @@ def init_db():
   try:
     conn = get_connection()
     cursor = conn.cursor()
+    # Хүснэгт байхгүй бол үүсгэнэ
     cursor.execute("""
             CREATE TABLE IF NOT EXISTS transactions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -73,9 +74,7 @@ init_db()
 
 # --- HEADER SECTION ---
 st.title("💸 Санхүүгийн хяналтын самбар")
-st.markdown(
-    "Таны орлого, зарлага болон санхүүгийн ерөнхий дүр зураг."
-)
+st.markdown("Таны орлого, зарлага болон санхүүгийн ерөнхий дүр зураг.")
 st.markdown("---")
 
 # Өгөгдлийн санзраас мэдээлэл татаж авах
@@ -135,8 +134,7 @@ with col3:
 st.markdown("<br>", unsafe_allow_html=True)
 
 # --- VISUAL ANALYTICS & TABLES ---
-if not df.empty:
-  # Хоёр баганаар график болон сүүлийн гүйлгээг харуулах
+if not df.empty and "type" in df.columns:
   chart_col, table_col = st.columns([1.2, 1.8])
 
   with chart_col:
@@ -159,10 +157,13 @@ if not df.empty:
         <h4>🕒 Сүүлд хийгдсэн гүйлгээ</h4>""",
         unsafe_allow_html=True,
     )
+    available_cols = [
+        col
+        for col in ["date", "bank_name", "description", "amount", "type"]
+        if col in df.columns
+    ]
     st.dataframe(
-        df[["date", "bank_name", "description", "amount", "type"]].tail(5),
-        use_container_width=True,
-        hide_index=True,
+        df[available_cols].tail(5), use_container_width=True, hide_index=True
     )
     st.markdown("</div>", unsafe_allow_html=True)
 else:
@@ -170,7 +171,7 @@ else:
       """
         <div class="glass-card" style="text-align: center; padding: 40px;">
             <h3>👋 Тавтай морилно уу!</h3>
-            <p style="color: #94a3b8;">Одоогоор өгөгдлийн сан хоосон байна. Зүүн талын цэснээс <b>1_📄_Хуулга_импортлох</b> хэсгийг сонгож банкны хуулгаа оруулж эхлэнэ үү.</p>
+            <p style="color: #94a3b8;">Одоогоор өгөгдлийн сан хоосон эсвэл шинэчлэгдсэн байна. Зүүн талын цэснээс <b>1_📄_Хуулга_импортлох</b> хэсгийг сонгож банкны хуулгаа оруулж эхлэнэ үү.</p>
         </div>
     """,
       unsafe_allow_html=True,
