@@ -13,42 +13,56 @@ lang = st.sidebar.selectbox(
     "Хэл сонгох", ["Монгол", "English"], label_visibility="collapsed"
 )
 
-# --- BANKNII BRAND UNGUUOD (Dictionary) ---
+# --- БАНКНЫ ЛОГО БОЛОН ӨНГӨНИЙ МЭДЭЭЛЭЛ ---
 bank_styles = {
     "Хаан банк": {
         "color": "#00A86B",
         "bg_glow": "rgba(0, 168, 107, 0.15)",
-        "logo": "🟢",
+        "logo_url": (
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18"
+            "/Khan_Bank_logo.svg/512px-Khan_Bank_logo.svg.png"
+        ),
     },
     "Голомт банк": {
         "color": "#0052CC",
         "bg_glow": "rgba(0, 82, 204, 0.15)",
-        "logo": "🔵",
+        "logo_url": (
+            "https://upload.wikimedia.org/wikipedia/commons/a/a2/Golomt_Bank_"
+            "logo.png"
+        ),
     },
     "Хас банк": {
         "color": "#FF6B00",
         "bg_glow": "rgba(255, 107, 0, 0.15)",
-        "logo": "🟠",
+        "logo_url": (
+            "https://upload.wikimedia.org/wikipedia/commons/4/4d/XacBank_logo.png"
+        ),
     },
     "Төрийн банк": {
         "color": "#002B49",
         "bg_glow": "rgba(0, 43, 73, 0.25)",
-        "logo": "🏛️",
+        "logo_url": (
+            "https://upload.wikimedia.org/wikipedia/commons/8/87/State_Bank"
+            "_Mongolia.png"
+        ),
     },
     "ХХБ (Худалдаа хөгжлийн банк)": {
         "color": "#E31B23",
         "bg_glow": "rgba(227, 27, 35, 0.15)",
-        "logo": "🔴",
+        "logo_url": (
+            "https://upload.wikimedia.org/wikipedia/commons/9/93/TDB_Mongolia"
+            "_logo.png"
+        ),
     },
     "Ариг банк": {
         "color": "#8E44AD",
         "bg_glow": "rgba(142, 68, 173, 0.15)",
-        "logo": "🟣",
+        "logo_url": "https://arigbank.mn/images/logo.png",
     },
     "Богд банк": {
         "color": "#F1C40F",
         "bg_glow": "rgba(241, 196, 15, 0.15)",
-        "logo": "🟡",
+        "logo_url": "https://bogdbank.com/images/logo.png",
     },
 }
 
@@ -86,14 +100,14 @@ selected_bank_info = bank_styles.get(
     {
         "color": "#10B981",
         "bg_glow": "rgba(16, 185, 129, 0.15)",
-        "logo": "🏦",
+        "logo_url": "",
     },
 )
 bank_color = selected_bank_info["color"]
 bank_glow = selected_bank_info["bg_glow"]
-bank_logo = selected_bank_info["logo"]
+bank_logo_url = selected_bank_info["logo_url"]
 
-# 🌙 Dark Glassmorphism + Dynamic Bank Theme CSS (Double braces {{ }} used for CSS)
+# 🌙 Dark Glassmorphism + Dynamic Bank Theme CSS
 st.markdown(
     f"""
 <style>
@@ -148,7 +162,7 @@ st.markdown(
         margin-bottom: 20px;
         display: flex;
         align-items: center;
-        gap: 15px;
+        gap: 20px;
         box-shadow: 0 4px 20px {bank_glow};
     }}
 
@@ -182,13 +196,14 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# --- БАНКНЫ ЛОГО БҮХИЙ BANNER UI ---
 st.markdown(
     f"""
     <div class="bank-banner">
-        <span style="font-size: 32px;">{bank_logo}</span>
+        <img src="{bank_logo_url}" alt="{bank} Logo" style="height: 45px; max-width: 120px; object-fit: contain; background: white; padding: 5px; border-radius: 8px;">
         <div>
             <h3 style="margin: 0; color: #ffffff;">{bank}</h3>
-            <p style="margin: 0; color: #94a3b8; font-size: 13px;">Сонгосон банкны загвар идэвхжлээ</p>
+            <p style="margin: 0; color: #94a3b8; font-size: 13px;">{"Банкны хуулга импортлох хэсэг" if lang=="Монгол" else "Bank Statement Import Section"}</p>
         </div>
     </div>
 """,
