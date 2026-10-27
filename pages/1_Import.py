@@ -1,135 +1,116 @@
-from dataclasses import asdict
-from pathlib import Path
-from tempfile import TemporaryDirectory
-
 import streamlit as st
-from sqlalchemy import select
+import sqlite3
+import os
+import pandas as pd
 
-from finance.db import get_session
-from finance.importer import DuplicateFileError, ValidationError, import_statement, validate
-from finance.models import Import
-from finance.parsers import PARSERS
-from finance.ui import apply_global_styles, render_footer
-
-apply_global_styles()
-
-def _validation_message(message: str) -> str:
-	translations = {
-		"balance_before and balance_after are required": "өмнөх болон дараах үлдэгдэл шаардлагатай",
-		"balance_before + amount does not equal balance_after": "өмнөх үлдэгдэл дээр гүйлгээний дүнг нэмэхэд дараах үлдэгдэлтэй тэнцэхгүй байна",
-		"balance_before does not match the previous row": "өмнөх үлдэгдэл нь өмнөх мөрийн дараах үлдэгдэлтэй таарахгүй байна",
-	}
-	for english, mongolian in translations.items():
-		if english in message:
-			return message.replace(english, mongolian).replace("Row ", "Мөр ")
-	if message.startswith("Statement total credit"):
-		return "Хуулгын нийт орлогын дүн мөрүүдийн орлогын нийлбэртэй таарахгүй байна."
-	if message.startswith("Statement total debit"):
-		return "Хуулгын нийт зарлагын дүн мөрүүдийн зарлагын нийлбэртэй таарахгүй байна."
-	return message.replace("Row ", "Мөр ")
-
-
-st.title("Хуулга импортлох")
-bank_code = st.selectbox(
-	"Банк",
-	options=list(PARSERS),
-	format_func=lambda code: "Хаан банк" if code == "khan" else PARSERS[code].name,
+st.set_page_config(
+    page_title="Хувийн санхүү",
+    page_icon="💰",
+    layout="wide"
 )
-uploaded_file = st.file_uploader("Банкны хуулгаа сонгоно уу", type=["xlsx", "csv"])
-st.caption("Excel эсвэл CSV хуулгаа сонгох буюу файл сонгох хэсэгт чирж оруулна уу.")
 
-if uploaded_file is not None:
-	suffix = Path(uploaded_file.name).suffix.lower()
-	with TemporaryDirectory() as temporary_folder:
-		temporary_path = Path(temporary_folder) / f"statement{suffix}"
-		try:
-			with st.spinner("Хуулгыг уншиж, шалгаж байна..."):
-				temporary_path.write_bytes(uploaded_file.getvalue())
-				info, transactions = PARSERS[bank_code].parse(temporary_path)
-				errors = validate(info, transactions)
-			st.subheader("Хуулгын мэдээлэл")
-			st.table(
-				{
-					"Дансны дугаар": info.account_no,
-					"IBAN": info.iban or "",
-					"Валют": info.currency,
-					"Эхлэх огноо": info.period_from,
-					"Дуусах огноо": info.period_to,
-					"Уншсан гүйлгээ": len(transactions),
-					"Нийт орлого": f"{info.total_credit:,.2f} ₮" if info.total_credit is not None else "Мэдээлэл алга",
-					"Нийт зарлага": f"{info.total_debit:,.2f} ₮" if info.total_debit is not None else "Мэдээлэл алга",
-				},
-				alt="Хуулгын данс, хугацаа болон нийт дүн",
-			)
-			preview = [
-				{
-					"Огноо": txn.txn_datetime,
-					"Дүн": f"{txn.amount:,.2f} ₮",
-					"Өмнөх үлдэгдэл": f"{txn.balance_before:,.2f} ₮" if txn.balance_before is not None else "",
-					"Дараах үлдэгдэл": f"{txn.balance_after:,.2f} ₮" if txn.balance_after is not None else "",
-					"Гүйлгээний утга": txn.description,
-					"Харилцагчийн данс": txn.counterparty_account or "",
-					"Салбарын код": txn.branch_code or "",
-				}
-				for txn in transactions[:20]
-			]
-			st.subheader("Гүйлгээний урьдчилсан харагдац")
-			st.dataframe(preview, hide_index=True, alt="Хуулгын эхний 20 гүйлгээ")
-			if errors:
-				st.error("Хуулгын шалгалт амжилтгүй боллоо")
-				for message in errors:
-					st.write(f"- {_validation_message(message)}")
-			else:
-				st.success("Үлдэгдлийн дараалал болон хуулгын нийлбэр зөв байна")
-				if st.button("Импорт баталгаажуулах", type="primary", disabled=bool(errors)):
-					try:
-						with st.spinner("Гүйлгээг хадгалж, ангилж байна..."):
-							result = import_statement(
-								temporary_path,
-								uploaded_file.name,
-								bank_code,
-							)
-						st.success(
-							f"{result.rows_new} шинэ гүйлгээг импортолж, "
-							f"{result.rows_duplicate} давхардлыг алгаслаа."
-						)
-						st.toast(f"{result.rows_new} шинэ гүйлгээг амжилттай импортоллоо.")
-						st.page_link("pages/2_Review.py", label="Ангилаагүй гүйлгээг ангилах", icon=":material/rule:")
-					except DuplicateFileError as error:
-						st.warning(f"Энэ хуулгыг өмнө нь импортолсон байна: {uploaded_file.name}")
-					except ValidationError as error:
-						st.error("Хуулгын шалгалт амжилтгүй боллоо.")
-						for message in error.errors:
-							st.write(f"- {_validation_message(message)}")
-					except Exception as error:
-						st.error("Импорт амжилтгүй боллоо. Өгөгдлийн сангийн холболтыг шалгаад дахин оролдоно уу.")
-		except Exception as error:
-			st.error("Хуулгыг уншиж чадсангүй. Файлын төрөл болон агуулгыг шалгаад дахин оролдоно уу.")
+# 🌙 Dark Glassmorphism загвар болон сайжруулсан Dashboard CSS
+st.markdown("""
+<style>
+    .stApp {
+        background-color: #0e1117;
+        color: #ffffff;
+    }
+    .glass-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 20px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+    .metric-card {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 14px;
+        padding: 20px;
+        text-align: center;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-st.subheader("Өмнөх импортууд")
+# Өгөгдлийн сангийн холболт
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "finance.db")
+
+def get_connection():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db():
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS transactions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                date TEXT NOT NULL,
+                description TEXT NOT NULL,
+                amount REAL NOT NULL,
+                type TEXT NOT NULL,
+                category TEXT DEFAULT 'Ангилаагүй',
+                bank_name TEXT DEFAULT 'Үндсэн банк'
+            )
+        ''')
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"DB Error: {e}")
+
+init_db()
+
+# 📊 Dashboard (Нүүр хуудас)
+st.title("💸 Хувийн санхүү - Хяналтын самбар")
+st.markdown("Банкны хуулгаа импортолж, орлого зарлагаа хялбар бөгөөд ойлгомжтойгоор хянаарай.")
+st.markdown("---")
+
+# Өгөгдлийн санзраас мэдээлэл татаж авах
 try:
-	with st.spinner("Импортын түүхийг ачаалж байна..."):
-		with get_session() as session:
-			imports = session.scalars(
-				select(Import).order_by(Import.imported_at.desc()).limit(100)
-			).all()
-		st.dataframe(
-			[
-				{
-					"Файл": item.file_name,
-					"Импортолсон огноо": item.imported_at,
-					"Эхлэх огноо": item.period_from,
-					"Дуусах огноо": item.period_to,
-					"Уншсан": item.rows_read,
-					"Шинэ": item.rows_new,
-					"Давхардсан": item.rows_duplicate,
-				}
-				for item in imports
-			],
-			hide_index=True,
-			alt="Сүүлд импортолсон банкны хуулгууд",
-		)
-except Exception as error:
-	st.warning("Импортын түүхийг одоогоор харуулах боломжгүй байна.")
+    conn = get_connection()
+    df = pd.read_sql("SELECT * FROM transactions", conn)
+    conn.close()
+except:
+    df = pd.DataFrame()
 
-render_footer()
+# KPI Metric картууд
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.markdown("""
+        <div class="metric-card">
+            <h4 style="color: #94a3b8; margin-bottom: 5px;">Нийт орлого</h4>
+            <h2 style="color: #34d399; margin-top: 0;">0 ₮</h2>
+        </div>
+    """, unsafe_allow_html=True)
+
+with col2:
+    st.markdown("""
+        <div class="metric-card">
+            <h4 style="color: #94a3b8; margin-bottom: 5px;">Нийт зарлага</h4>
+            <h2 style="color: #f87171; margin-top: 0;">0 ₮</h2>
+        </div>
+    """, unsafe_allow_html=True)
+
+with col3:
+    st.markdown("""
+        <div class="metric-card">
+            <h4 style="color: #94a3b8; margin-bottom: 5px;">Үлдэгдэл</h4>
+            <h2 style="color: #60a5fa; margin-top: 0;">0 ₮</h2>
+        </div>
+    """, unsafe_allow_html=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+st.markdown("""
+    <div class="glass-card">
+        <h3>📌 Тавтай морилно уу!</h3>
+        <p>Зүүн талын цэснээс <b>1_📄_Хуулга_импортлох</b> хэсгийг сонгож банкны хуулгаа оруулж эхлэнэ үү.</p>
+    </div>
+""", unsafe_allow_html=True)
