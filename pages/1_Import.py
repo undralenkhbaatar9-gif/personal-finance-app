@@ -1,28 +1,15 @@
 import streamlit as st
 
-# Хуудасны тохиргоо
+# Хуудасны тохиргоо (Цэсийг хэвээр нь гаргана)
 st.set_page_config(
     page_title="Хуулга импортлох", page_icon="📄", layout="wide"
 )
 
-# Dark Glassmorphism Custom CSS (Цэсэнд нөлөөлөхгүйгээр зөвхөн контент хэсгийг тохируулах)
+# File uploader болон элементүүдийг илүү гоё бараан болгох CSS
 st.markdown(
     """
     <style>
-    /* Үндсэн фонт болон гарчиг */
-    h1, h2, h3, h4, h5, h6, p, span, label {
-        color: #ffffff !important;
-    }
-
-    /* Selectbox загвар */
-    .stSelectbox div[data-baseweb="select"] {
-        background-color: #1e222d !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 10px !important;
-        color: #ffffff !important;
-    }
-
-    /* File uploader хэсэг */
+    /* File uploader хэсгийн дизайн */
     .stFileUploader {
         background: rgba(30, 34, 45, 0.6);
         border: 1px solid rgba(255, 255, 255, 0.1);
