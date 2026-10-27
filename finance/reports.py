@@ -5,7 +5,7 @@ import pandas as pd
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
-from finance.models import Account, Category, Counterparty, Transaction
+from finance.models import get_connection
 
 ZERO = Decimal("0.00")
 
