@@ -31,10 +31,8 @@ def import_statement():
             
             if income > 0:
                 amount = income
-                kind = 'income'
             elif expense > 0:
                 amount = -abs(expense)
-                kind = 'expense'
             else:
                 continue
 
