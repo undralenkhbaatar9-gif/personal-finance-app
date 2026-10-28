@@ -16,10 +16,14 @@ kind_labels = {"income": "Орлого", "expense": "Зарлага", "transfer"
 
 try:
     with get_session() as session:
-        # 1. Categories хүснэгтээс өгөгдөл татах
-        categories_raw = session.execute(
-            text("SELECT id, kind, name FROM categories ORDER BY kind, name")
-        ).fetchall()
+        # Хүснэгтүүдийн багануудыг автоматаар шалгах
+        tx_cols = [row[1] for row in session.execute(text("PRAGMA table_info(transactions)")).fetchall()]
+        cp_cols = [row[1] for row in session.execute(text("PRAGMA table_info(counterparties)")).fetchall()]
+        cat_cols = [row[1] for row in session.execute(text("PRAGMA table_info(categories)")).fetchall()]
+
+        # Categories татах
+        cat_select_cols = ", ".join([c for c in ["id", "kind", "name"] if c in cat_cols])
+        categories_raw = session.execute(text(f"SELECT {cat_select_cols} FROM categories ORDER BY kind, name")).fetchall()
         
         class SimpleObj:
             def __init__(self, **kwargs):
@@ -37,35 +41,66 @@ try:
             for cat in categories
         }
 
-        # 2. Unclassified гүйлгээнүүдийг SQL-ээр татах
+        # Transactions шүүх нөхцөл болон багануудыг динамикаар үүсгэх
+        date_col = next((c for c in ["date", "transaction_date", "tx_date"] if c in tx_cols), tx_cols[1] if len(tx_cols) > 1 else tx_cols[0])
+        desc_col = next((c for c in ["description", "memo", "details"] if c in tx_cols), "description" if "description" in tx_cols else tx_cols[0])
+        amount_col = next((c for c in ["amount", "sum", "value"] if c in tx_cols), "amount")
+        type_col = next((c for c in ["type", "tx_type"] if c in tx_cols), "type" if "type" in tx_cols else None)
+        cs_col = next((c for c in ["category_source", "source"] if c in tx_cols), None)
+        cid_col = next((c for c in ["category_id"] if c in tx_cols), None)
+        cpid_col = next((c for c in ["counterparty_id"] if c in tx_cols), None)
+        bank_col = next((c for c in ["bank_name", "bank"] if c in tx_cols), None)
+
+        select_fields = ["id", date_col, desc_col, amount_col]
+        if type_col: select_fields.append(type_col)
+        if cs_col: select_fields.append(cs_col)
+        if cid_col: select_fields.append(cid_col)
+        if cpid_col: select_fields.append(cpid_col)
+        if bank_col: select_fields.append(bank_col)
+
+        where_clauses = []
+        if cs_col:
+            where_clauses.append(f"({cs_col} = 'unclassified' OR {cs_col} IS NULL)")
+        if cid_col:
+            where_clauses.append(f"({cid_col} IS NULL)")
+        
+        where_sql = " WHERE " + " OR ".join(where_clauses) if where_clauses else ""
+
         with st.spinner("Ангилаагүй гүйлгээнүүдийг ачаалж байна..."):
-            tx_raw = session.execute(
-                text("""
-                    SELECT id, date, description, amount, type, category_source, category_id, counterparty_id, bank_name 
-                    FROM transactions 
-                    WHERE category_source = 'unclassified' OR category_source IS NULL OR category_id IS NULL
-                """)
-            ).fetchall()
+            tx_raw = session.execute(text(f"SELECT {', '.join(select_fields)} FROM transactions{where_sql}")).fetchall()
 
         unclassified = []
         for r in tx_raw:
+            # Динамикаар утгуудыг оноох
+            val_map = {field: r[i] for i, field in enumerate(select_fields)}
             unclassified.append(SimpleObj(
-                id=r[0], date=r[1], description=r[2], amount=Decimal(str(r[3]) if r[3] is not None else "0"),
-                type=r[4], category_source=r[5], category_id=r[6], counterparty_id=r[7], bank_name=r[8]
+                id=val_map.get("id"),
+                date=val_map.get(date_col),
+                description=val_map.get(desc_col),
+                amount=Decimal(str(val_map.get(amount_col, 0) or 0)),
+                type=val_map.get(type_col) if type_col else "",
+                category_source=val_map.get(cs_col) if cs_col else "",
+                category_id=val_map.get(cid_col) if cid_col else None,
+                counterparty_id=val_map.get(cpid_col) if cpid_col else None,
+                bank_name=val_map.get(bank_col) if bank_col else ""
             ))
 
         counterparty_ids = {txn.counterparty_id for txn in unclassified if txn.counterparty_id}
         
         counterparties = {}
-        if counterparty_ids:
+        if counterparty_ids and cpid_col:
             id_list = ",".join(str(i) for i in counterparty_ids)
-            cp_raw = session.execute(
-                text(f"SELECT id, match_key, display_name, default_category_id, is_own_account, ask_per_txn FROM counterparties WHERE id IN ({id_list})")
-            ).fetchall()
+            cp_select = ", ".join([c for c in ["id", "match_key", "display_name", "default_category_id", "is_own_account", "ask_per_txn"] if c in cp_cols])
+            cp_raw = session.execute(text(f"SELECT {cp_select} FROM counterparties WHERE id IN ({id_list})")).fetchall()
             for r in cp_raw:
-                counterparties[r[0]] = SimpleObj(
-                    id=r[0], match_key=r[1], display_name=r[2], 
-                    default_category_id=r[3], is_own_account=bool(r[4]), ask_per_txn=bool(r[5])
+                c_map = {cp_select.split(', ')[i].strip(): r[i] for i in range(len(r))}
+                counterparties[c_map.get("id")] = SimpleObj(
+                    id=c_map.get("id"),
+                    match_key=c_map.get("match_key", ""),
+                    display_name=c_map.get("display_name", ""),
+                    default_category_id=c_map.get("default_category_id"),
+                    is_own_account=bool(c_map.get("is_own_account", 0)),
+                    ask_per_txn=bool(c_map.get("ask_per_txn", 0))
                 )
         
         transactions_by_counterparty: dict[int, list] = {}
@@ -78,7 +113,7 @@ try:
         if not unclassified:
             st.success("Бүх гүйлгээ ангилагдсан байна.")
         elif not transactions_by_counterparty:
-            st.info("Ангилаагүй гүйлгээнд харилцагч холбогдоогүй байна. Импортлогдсон гүйлгээнүүдийг шалгана уу.")
+            st.info("Ангилаагүй гүйлгээнд харилцагч холбогдоогүй байна. Хуулгаа шалгана уу.")
             
             records = []
             for txn in unclassified:
@@ -170,7 +205,6 @@ try:
                         new_own = 1 if values["own account"] else 0
                         new_ask = 1 if values["ask per txn"] else 0
 
-                        # Counterparties хүснэгтийг SQL-ээр шинэчлэх
                         session.execute(
                             text("UPDATE counterparties SET display_name = :d, default_category_id = :c, is_own_account = :o, ask_per_txn = :a WHERE id = :id"),
                             {"d": new_display_name, "c": new_cat_id, "o": new_own, "a": new_ask, "id": c_id}
