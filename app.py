@@ -11,7 +11,7 @@ from finance.reports import (
 )
 from finance.ui import apply_global_styles, render_footer, render_lang_toggle
 
-lang = render_lang_toggle(location="sidebar")
+lang = render_lang_toggle(location="top")
 
 t = {
     "mn": {
