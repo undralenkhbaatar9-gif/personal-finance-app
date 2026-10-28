@@ -1,7 +1,6 @@
 from decimal import Decimal
 import pandas as pd
 import streamlit as st
-from sqlalchemy import select, or_
 
 from finance.classifier import classify_transactions
 from finance.db import get_session
@@ -16,19 +15,14 @@ kind_labels = {"income": "Орлого", "expense": "Зарлага", "transfer"
 
 try:
     with get_session() as session:
-        categories = session.scalars(
-            select(Category).order_by(Category.kind, Category.name)
-        ).all()
+        # session.query ашиглан ямар ч алдаагүйгээр category-уудыг авах
+        categories = session.query(Category).order_by(Category.kind, Category.name).all()
         
         with st.spinner("Ангилаагүй гүйлгээнүүдийг ачаалж байна..."):
-            unclassified = session.scalars(
-                select(Transaction).where(
-                    or_(
-                        Transaction.category_source == "unclassified",
-                        Transaction.category_source.is_(None),
-                        Transaction.category_id.is_(None)
-                    )
-                )
+            unclassified = session.query(Transaction).filter(
+                (Transaction.category_source == "unclassified") |
+                (Transaction.category_source.is_(None)) |
+                (Transaction.category_id.is_(None))
             ).all()
 
         category_options = [
@@ -44,9 +38,7 @@ try:
         
         counterparties = {}
         if counterparty_ids:
-            cp_results = session.scalars(
-                select(Counterparty).where(Counterparty.id.in_(counterparty_ids))
-            ).all()
+            cp_results = session.query(Counterparty).filter(Counterparty.id.in_(counterparty_ids)).all()
             counterparties = {item.id: item for item in cp_results}
         
         transactions_by_counterparty: dict[int, list[Transaction]] = {}
@@ -151,12 +143,10 @@ try:
                         counterparty.is_own_account = bool(values["own account"])
                         counterparty.ask_per_txn = bool(values["ask per txn"])
                         
-                        tx_results = session.scalars(
-                            select(Transaction.id).where(
-                                Transaction.counterparty_id == counterparty.id
-                            )
+                        tx_results = session.query(Transaction.id).filter(
+                            Transaction.counterparty_id == counterparty.id
                         ).all()
-                        changed_ids.extend(tx_results)
+                        changed_ids.extend([t[0] for t in tx_results])
                         
                     with st.spinner("Гүйлгээг дахин ангилж байна..."):
                         classify_transactions(session, changed_ids)
