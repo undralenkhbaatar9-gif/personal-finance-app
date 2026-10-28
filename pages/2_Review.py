@@ -16,20 +16,18 @@ kind_labels = {"income": "Орлого", "expense": "Зарлага", "transfer"
 
 try:
     with get_session() as session:
-        # 1. Category хүснэгтээс өгөгдлийг шууд SQL-ээр татах (ORM классаас үүдэлтэй алдааг 100% тойрно)
+        # Зөв багануудыг ашиглан categories хүснэгтээс өгөгдөл татах
         categories_raw = session.execute(
-            __import__("sqlalchemy").text("SELECT id, kind, name, default_category_id FROM categories ORDER BY kind, name")
+            __import__("sqlalchemy").text("SELECT id, kind, name FROM categories ORDER BY kind, name")
         ).fetchall()
         
-        # Category объект руу хөрвүүлэх класс төст бүтцээр ашиглах
         class CatObj:
-            def __init__(self, id, kind, name, default_category_id):
+            def __init__(self, id, kind, name):
                 self.id = id
                 self.kind = kind
                 self.name = name
-                self.default_category_id = default_category_id
 
-        categories = [CatObj(row[0], row[1], row[2], row[3]) for row in categories_raw]
+        categories = [CatObj(row[0], row[1], row[2]) for row in categories_raw]
 
         with st.spinner("Ангилаагүй гүйлгээнүүдийг ачаалж байна..."):
             unclassified = session.query(Transaction).filter(
@@ -88,11 +86,14 @@ try:
                 descriptions = list(dict.fromkeys(txn.description or "" for txn in transactions))[:3]
                 incoming = sum((txn.amount for txn in transactions if txn.amount > 0), Decimal("0.00"))
                 outgoing = sum((abs(txn.amount) for txn in transactions if txn.amount < 0), Decimal("0.00"))
+                
+                # counterparty дээр default_category_id байгаа эсэхийг аюулгүй шалгах
+                default_cat_id = getattr(counterparty, "default_category_id", None)
                 selected_category = next(
                     (
                         f"{kind_labels.get(category.kind, category.kind)}: {category.name}"
                         for category in categories
-                        if category.id == counterparty.default_category_id
+                        if category.id == default_cat_id
                     ),
                     "",
                 )
@@ -153,7 +154,8 @@ try:
                             continue
                         selected = values["category"] or ""
                         counterparty.display_name = values["display_name"] or None
-                        counterparty.default_category_id = category_by_label.get(selected)
+                        if hasattr(counterparty, "default_category_id"):
+                            counterparty.default_category_id = category_by_label.get(selected)
                         counterparty.is_own_account = bool(values["own account"])
                         counterparty.ask_per_txn = bool(values["ask per txn"])
                         
