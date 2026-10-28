@@ -5,7 +5,7 @@ import streamlit as st
 
 from finance.classifier import classify_transactions
 from finance.db import get_session
-from finance.models import Category, Counterparty, Transaction
+from finance.models import Transaction
 from finance.ui import apply_global_styles, render_footer
 
 apply_global_styles()
@@ -16,8 +16,21 @@ kind_labels = {"income": "Орлого", "expense": "Зарлага", "transfer"
 
 try:
     with get_session() as session:
-        categories = session.query(Category).order_by(Category.kind, Category.name).all()
+        # 1. Category хүснэгтээс өгөгдлийг шууд SQL-ээр татах (ORM классаас үүдэлтэй алдааг 100% тойрно)
+        categories_raw = session.execute(
+            __import__("sqlalchemy").text("SELECT id, kind, name, default_category_id FROM categories ORDER BY kind, name")
+        ).fetchall()
         
+        # Category объект руу хөрвүүлэх класс төст бүтцээр ашиглах
+        class CatObj:
+            def __init__(self, id, kind, name, default_category_id):
+                self.id = id
+                self.kind = kind
+                self.name = name
+                self.default_category_id = default_category_id
+
+        categories = [CatObj(row[0], row[1], row[2], row[3]) for row in categories_raw]
+
         with st.spinner("Ангилаагүй гүйлгээнүүдийг ачаалж байна..."):
             unclassified = session.query(Transaction).filter(
                 (Transaction.category_source == "unclassified") |
@@ -37,6 +50,7 @@ try:
         counterparty_ids = {txn.counterparty_id for txn in unclassified if txn.counterparty_id}
         
         counterparties = {}
+        from finance.models import Counterparty
         if counterparty_ids:
             cp_results = session.query(Counterparty).filter(Counterparty.id.in_(counterparty_ids)).all()
             counterparties = {item.id: item for item in cp_results}
