@@ -9,8 +9,8 @@ from finance.config import DATABASE_URL
 class Base(DeclarativeBase):
     pass
 
-
-engine = create_engine(DATABASE_URL) if DATABASE_URL else None
+# future=True тохиргоог нэмсэнээр select() функц модель классуудыг зөв таньж ажиллана
+engine = create_engine(DATABASE_URL, future=True) if DATABASE_URL else None
 SessionLocal = sessionmaker(bind=engine) if engine is not None else None
 
 
