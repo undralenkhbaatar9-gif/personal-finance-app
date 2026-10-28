@@ -2,10 +2,10 @@ from decimal import Decimal
 import traceback
 import pandas as pd
 import streamlit as st
+from sqlalchemy import text
 
 from finance.classifier import classify_transactions
 from finance.db import get_session
-from finance.models import Transaction
 from finance.ui import apply_global_styles, render_footer
 
 apply_global_styles()
@@ -16,44 +16,59 @@ kind_labels = {"income": "Орлого", "expense": "Зарлага", "transfer"
 
 try:
     with get_session() as session:
-        # Зөв багануудыг ашиглан categories хүснэгтээс өгөгдөл татах
+        # 1. Categories хүснэгтээс өгөгдөл татах
         categories_raw = session.execute(
-            __import__("sqlalchemy").text("SELECT id, kind, name FROM categories ORDER BY kind, name")
+            text("SELECT id, kind, name FROM categories ORDER BY kind, name")
         ).fetchall()
         
-        class CatObj:
-            def __init__(self, id, kind, name):
-                self.id = id
-                self.kind = kind
-                self.name = name
+        class SimpleObj:
+            def __init__(self, **kwargs):
+                for k, v in kwargs.items():
+                    setattr(self, k, v)
 
-        categories = [CatObj(row[0], row[1], row[2]) for row in categories_raw]
-
-        with st.spinner("Ангилаагүй гүйлгээнүүдийг ачаалж байна..."):
-            unclassified = session.query(Transaction).filter(
-                (Transaction.category_source == "unclassified") |
-                (Transaction.category_source.is_(None)) |
-                (Transaction.category_id.is_(None))
-            ).all()
+        categories = [SimpleObj(id=r[0], kind=r[1], name=r[2]) for r in categories_raw]
 
         category_options = [
-            f"{kind_labels.get(category.kind, category.kind)}: {category.name}"
-            for category in categories
+            f"{kind_labels.get(cat.kind, cat.kind)}: {cat.name}"
+            for cat in categories
         ]
         category_by_label = {
-            f"{kind_labels.get(category.kind, category.kind)}: {category.name}": category.id
-            for category in categories
+            f"{kind_labels.get(cat.kind, cat.kind)}: {cat.name}": cat.id
+            for cat in categories
         }
-        
+
+        # 2. Unclassified гүйлгээнүүдийг SQL-ээр татах
+        with st.spinner("Ангилаагүй гүйлгээнүүдийг ачаалж байна..."):
+            tx_raw = session.execute(
+                text("""
+                    SELECT id, date, description, amount, type, category_source, category_id, counterparty_id, bank_name 
+                    FROM transactions 
+                    WHERE category_source = 'unclassified' OR category_source IS NULL OR category_id IS NULL
+                """)
+            ).fetchall()
+
+        unclassified = []
+        for r in tx_raw:
+            unclassified.append(SimpleObj(
+                id=r[0], date=r[1], description=r[2], amount=Decimal(str(r[3]) if r[3] is not None else "0"),
+                type=r[4], category_source=r[5], category_id=r[6], counterparty_id=r[7], bank_name=r[8]
+            ))
+
         counterparty_ids = {txn.counterparty_id for txn in unclassified if txn.counterparty_id}
         
         counterparties = {}
-        from finance.models import Counterparty
         if counterparty_ids:
-            cp_results = session.query(Counterparty).filter(Counterparty.id.in_(counterparty_ids)).all()
-            counterparties = {item.id: item for item in cp_results}
+            id_list = ",".join(str(i) for i in counterparty_ids)
+            cp_raw = session.execute(
+                text(f"SELECT id, match_key, display_name, default_category_id, is_own_account, ask_per_txn FROM counterparties WHERE id IN ({id_list})")
+            ).fetchall()
+            for r in cp_raw:
+                counterparties[r[0]] = SimpleObj(
+                    id=r[0], match_key=r[1], display_name=r[2], 
+                    default_category_id=r[3], is_own_account=bool(r[4]), ask_per_txn=bool(r[5])
+                )
         
-        transactions_by_counterparty: dict[int, list[Transaction]] = {}
+        transactions_by_counterparty: dict[int, list] = {}
         for txn in unclassified:
             if txn.counterparty_id is not None:
                 transactions_by_counterparty.setdefault(txn.counterparty_id, []).append(txn)
@@ -87,7 +102,6 @@ try:
                 incoming = sum((txn.amount for txn in transactions if txn.amount > 0), Decimal("0.00"))
                 outgoing = sum((abs(txn.amount) for txn in transactions if txn.amount < 0), Decimal("0.00"))
                 
-                # counterparty дээр default_category_id байгаа эсэхийг аюулгүй шалгах
                 default_cat_id = getattr(counterparty, "default_category_id", None)
                 selected_category = next(
                     (
@@ -149,20 +163,24 @@ try:
                     changed_ids: list[int] = []
                     edited_rows = edited.set_index("counterparty_id").to_dict("index")
                     for counterparty_id, values in edited_rows.items():
-                        counterparty = counterparties.get(int(counterparty_id))
-                        if not counterparty:
-                            continue
+                        c_id = int(counterparty_id)
                         selected = values["category"] or ""
-                        counterparty.display_name = values["display_name"] or None
-                        if hasattr(counterparty, "default_category_id"):
-                            counterparty.default_category_id = category_by_label.get(selected)
-                        counterparty.is_own_account = bool(values["own account"])
-                        counterparty.ask_per_txn = bool(values["ask per txn"])
+                        new_display_name = values["display_name"] or None
+                        new_cat_id = category_by_label.get(selected)
+                        new_own = 1 if values["own account"] else 0
+                        new_ask = 1 if values["ask per txn"] else 0
+
+                        # Counterparties хүснэгтийг SQL-ээр шинэчлэх
+                        session.execute(
+                            text("UPDATE counterparties SET display_name = :d, default_category_id = :c, is_own_account = :o, ask_per_txn = :a WHERE id = :id"),
+                            {"d": new_display_name, "c": new_cat_id, "o": new_own, "a": new_ask, "id": c_id}
+                        )
                         
-                        tx_results = session.query(Transaction.id).filter(
-                            Transaction.counterparty_id == counterparty.id
-                        ).all()
-                        changed_ids.extend([t[0] for t in tx_results])
+                        tx_res = session.execute(
+                            text("SELECT id FROM transactions WHERE counterparty_id = :id"),
+                            {"id": c_id}
+                        ).fetchall()
+                        changed_ids.extend([t[0] for t in tx_res])
                         
                     with st.spinner("Гүйлгээг дахин ангилж байна..."):
                         classify_transactions(session, changed_ids)
