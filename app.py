@@ -1,38 +1,19 @@
 from datetime import date, timedelta
 import streamlit as st
 from finance.db import get_session
-from finance.reports import monthly_summary, transactions_export
+from finance.reports import (
+    monthly_summary,
+    expense_by_category,
+    income_by_category,
+    top_counterparties,
+    transactions_export
+)
 from finance.ui import apply_global_styles, render_footer
 
-# Глобал стилийг ачаалах
 apply_global_styles()
 
-# Нэмэлт glassmorphism болон карт дизайны CSS сайжруулалт
-st.markdown("""
-    <style>
-    .main-title {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: #ffffff;
-        margin-bottom: 0px;
-    }
-    .sub-title {
-        color: #94a3b8;
-        font-size: 1.1rem;
-        margin-bottom: 2rem;
-    }
-    .metric-card {
-        background: rgba(30, 41, 59, 0.7);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-st.markdown('<p class="main-title">💳 Санхүүгийн хяналтын самбар</p>', unsafe_allow_html=True)
-st.markdown('<p class="sub-title">Таны орлого, зарлага болон санхүүгийн ерөнхий дүр зураг.</p>', unsafe_allow_html=True)
+st.markdown("## 💳 Санхүүгийн хяналтын самбар")
+st.markdown("Таны орлого, зарлага болон санхүүгийн ерөнхий дүр зураг.")
 
 today = date.today()
 date_from = today - timedelta(days=365)
@@ -40,7 +21,7 @@ date_to = today
 
 try:
     with get_session() as session:
-        # Гүйлгээг төрлөөр нь шүүж авах
+        # 1. Ерөнхий дүнгүүд
         df = transactions_export(session, date_from, date_to, include_transfers=False)
         
         if not df.empty and "kind" in df.columns:
@@ -52,7 +33,7 @@ try:
 
         net_balance = total_income - total_expense
 
-        # Сайхан харагдах метрик картууд
+        # Метрик картууд
         col1, col2, col3 = st.columns(3)
         with col1:
             st.metric("🟢 НИЙТ ОРЛОГО", f"{float(total_income):,.2f} ₮")
@@ -63,15 +44,36 @@ try:
 
         st.markdown("---")
         
-        # Сарын тайлан болон график хэсэг
-        st.subheader("📊 Сарын орлого, зарлагын тойм график")
+        # 2. Сарын орлого, зарлагын харьцуулсан график
+        st.subheader("📈 Сарын орлого, зарлагын тойм график")
         monthly_df = monthly_summary(session, date_from, date_to, include_transfers=False)
         
         if not monthly_df.empty:
-            chart_data = monthly_df.set_index("month")[["income", "expense"]]
-            st.bar_chart(chart_data, use_container_width=True)
+            st.bar_chart(monthly_df.set_index("month")[["income", "expense"]], use_container_width=True)
         else:
-            st.info("📌 Одоогоор сарын мэдээлэл байхгүй байна. Зүүн талын цэсээс хуулга оруулж эхлэнэ үү.")
+            st.info("📌 Одоогоор сарын мэдээлэл байхгүй байна.")
+
+        st.markdown("---")
+
+        # 3. Ангилал болон харилцагчийн график/хүснэгтүүд (Хоёр баганаар зэрэгцүүлж харуулах)
+        col_left, col_right = st.columns(2)
+        
+        with col_left:
+            st.subheader("🏷️ Ангиллаарх зарлага")
+            exp_cat_df = expense_by_category(session, date_from, date_to, include_transfers=False)
+            if not exp_cat_df.empty:
+                # Зардлын ангилал тус бүрээр бар чарт гаргах
+                st.bar_chart(exp_cat_df.set_index("category")["amount"], use_container_width=True)
+            else:
+                st.info("Зарлагын ангилал одоогоор алга.")
+
+        with col_right:
+            st.subheader("🏆 Гол харилцагчид (Top Counterparties)")
+            cp_df = top_counterparties(session, date_from, date_to, include_transfers=False, n=5)
+            if not cp_df.empty:
+                st.dataframe(cp_df, use_container_width=True)
+            else:
+                st.info("Харилцагчийн мэдээлэл байхгүй байна.")
 
 except Exception as error:
     st.error(f"Мэдээлэл ачаалахад алдаа гарлаа: {error}")
