@@ -5,7 +5,8 @@ import pandas as pd
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
-from finance.models import get_connection
+# Алдаа гарч байсан шалтгаан болсон модель классуудыг бүрэн импортоллоо
+from finance.models import Account, Category, Counterparty, Transaction
 
 ZERO = Decimal("0.00")
 
@@ -94,6 +95,8 @@ def monthly_summary(
     include_transfers: bool = False,
 ) -> pd.DataFrame:
     transactions = transactions_export(session, date_from, date_to, include_transfers)
+    if transactions.empty or "kind" not in transactions.columns:
+        return pd.DataFrame(columns=["month", "income", "expense"])
     transactions = transactions[transactions["kind"].isin(["income", "expense"])]
     if transactions.empty:
         return pd.DataFrame(columns=["month", "income", "expense"])
@@ -123,6 +126,8 @@ def expense_by_category(
     include_transfers: bool = False,
 ) -> pd.DataFrame:
     transactions = transactions_export(session, date_from, date_to, include_transfers)
+    if transactions.empty or "kind" not in transactions.columns:
+        return pd.DataFrame(columns=["category", "amount"])
     transactions = transactions[transactions["kind"] == "expense"]
     totals: dict[str, Decimal] = {}
     for row in transactions.itertuples(index=False):
@@ -144,6 +149,8 @@ def income_by_category(
     include_transfers: bool = False,
 ) -> pd.DataFrame:
     transactions = transactions_export(session, date_from, date_to, include_transfers)
+    if transactions.empty or "kind" not in transactions.columns:
+        return pd.DataFrame(columns=["category", "amount"])
     transactions = transactions[transactions["kind"] == "income"]
     totals: dict[str, Decimal] = {}
     for row in transactions.itertuples(index=False):
@@ -166,6 +173,8 @@ def top_counterparties(
     n: int = 10,
 ) -> pd.DataFrame:
     transactions = transactions_export(session, date_from, date_to, include_transfers)
+    if transactions.empty:
+        return pd.DataFrame(columns=["counterparty", "amount"])
     totals: dict[str, Decimal] = {}
     for row in transactions.itertuples(index=False):
         label = row.counterparty or row.match_key or "Unknown"
