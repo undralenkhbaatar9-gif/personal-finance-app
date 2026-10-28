@@ -16,11 +16,13 @@ kind_labels = {"income": "Орлого", "expense": "Зарлага", "transfer"
 
 try:
     with get_session() as session:
-        categories = session.scalars(select(Category).order_by(Category.kind, Category.name)).all()
+        # Category авах зөв синтакс
+        categories = session.execute(
+            select(Category).order_by(Category.kind, Category.name)
+        ).scalars().all()
         
         with st.spinner("Ангилаагүй гүйлгээнүүдийг ачаалж байна..."):
-            # category_source нь unclassified эсвэл category нь хоосон/байхгүй гүйлгээнүүдийг шүүж авах
-            unclassified = session.scalars(
+            unclassified = session.execute(
                 select(Transaction).where(
                     or_(
                         Transaction.category_source == "unclassified",
@@ -28,7 +30,7 @@ try:
                         Transaction.category_id.is_(None)
                     )
                 )
-            ).all()
+            ).scalars().all()
 
         category_options = [
             f"{kind_labels.get(category.kind, category.kind)}: {category.name}"
@@ -40,12 +42,13 @@ try:
         }
         
         counterparty_ids = {txn.counterparty_id for txn in unclassified if txn.counterparty_id}
-        counterparties = {
-            item.id: item
-            for item in session.scalars(
-                select(Counterparty).where(Counterparty.id.in_(counterparty_ids or {-1}))
-            )
-        }
+        
+        counterparties = {}
+        if counterparty_ids:
+            cp_results = session.execute(
+                select(Counterparty).where(Counterparty.id.in_(counterparty_ids))
+            ).scalars().all()
+            counterparties = {item.id: item for item in cp_results}
         
         transactions_by_counterparty: dict[int, list[Transaction]] = {}
         for txn in unclassified:
@@ -57,10 +60,8 @@ try:
         if not unclassified:
             st.success("Бүх гүйлгээ ангилагдсан байна.")
         elif not transactions_by_counterparty:
-            # Хэрэв харилцагч холбогдоогүй бол шууд гүйлгээгээр нь жагсааж харуулах эсвэл мэдээлэл өгөх
             st.info("Ангилаагүй гүйлгээнд харилцагч холбогдоогүй байна. Импортлогдсон гүйлгээнүүдийг шалгана уу.")
             
-            # Харилцагчгүй гүйлгээнүүдийг шууд харуулах хэсэг
             records = []
             for txn in unclassified:
                 records.append({
@@ -150,13 +151,14 @@ try:
                         counterparty.default_category_id = category_by_label.get(selected)
                         counterparty.is_own_account = bool(values["own account"])
                         counterparty.ask_per_txn = bool(values["ask per txn"])
-                        changed_ids.extend(
-                            session.scalars(
-                                select(Transaction.id).where(
-                                    Transaction.counterparty_id == counterparty.id
-                                )
-                            ).all()
-                        )
+                        
+                        tx_results = session.execute(
+                            select(Transaction.id).where(
+                                Transaction.counterparty_id == counterparty.id
+                            )
+                        .scalars().all())
+                        changed_ids.extend(tx_results)
+                        
                     with st.spinner("Гүйлгээг дахин ангилж байна..."):
                         classify_transactions(session, changed_ids)
                     notification_message = "Харилцагчдын тохиргоог хадгалж, гүйлгээг дахин ангиллаа."
