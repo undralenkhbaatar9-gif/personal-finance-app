@@ -59,7 +59,7 @@ if lang == "Монгол":
   prev_imports = "Өмнөх импортууд"
   no_history = "Импортын түүхийг одоогоор харуулах боломжгүй байна."
   col_error = (
-      "⚠️ Файлаас 'Огноо', 'Утга' эсвэл 'Дүн' багануудыг олоход алдаа гарлаа."
+      "⚠️ Файлаас 'Огноо', 'Утга' эсвэл Дүнгийн багануудыг олоход алдаа гарлаа."
       " Файлын бүтцийг шалгана уу."
   )
 else:
@@ -73,8 +73,8 @@ else:
   prev_imports = "Previous Imports"
   no_history = "Import history is currently unavailable."
   col_error = (
-      "⚠️ Could not find 'Date', 'Description', or 'Amount' columns in the"
-      " file. Please check file structure."
+      "⚠️ Could not find 'Date', 'Description', or Amount columns in the file."
+      " Please check file structure."
   )
 
 st.markdown(f"### {title_text}")
@@ -215,13 +215,11 @@ def get_connection():
 if uploaded_file is not None:
   st.success(f"{success_file}{uploaded_file.name}")
   try:
-    # 1. Эхлээд толгой мөргүйгээр уншиж хаана гарчиг байгааг олдог
     if uploaded_file.name.endswith(".csv"):
       df_raw = pd.read_csv(uploaded_file, header=None)
     else:
       df_raw = pd.read_excel(uploaded_file, header=None)
 
-    # 2. "Огноо" эсвэл "Огнос" гэсэн үг аль мөрөнд байгааг автоматаар хайна
     header_row_idx = 0
     for idx, row in df_raw.head(10).iterrows():
       row_str = " ".join([str(val).lower() for val in row.values])
@@ -229,7 +227,6 @@ if uploaded_file is not None:
         header_row_idx = idx
         break
 
-    # 3. Олдсон мөрөөр толгойг нь тааруулж файлыг дахин зөв уншина
     uploaded_file.seek(0)
     if uploaded_file.name.endswith(".csv"):
       df = pd.read_csv(uploaded_file, skiprows=header_row_idx)
@@ -239,7 +236,6 @@ if uploaded_file is not None:
     st.markdown(f"#### {preview_text}")
     st.dataframe(df.head(), use_container_width=True)
 
-    # --- УХААЛАГ БАГАНА ТАНИХ ЛОГИК ---
     cols_lower = [str(c).strip().lower() for c in df.columns]
 
 
@@ -254,12 +250,12 @@ if uploaded_file is not None:
     date_col = find_col(["огноо", "огнос", "date", "ognoo"])
     desc_col = find_col(["утга", "гүйлгээний утга", "description", "desc", "utga"])
     
-    # Хас банк болон бусад банкнуудын хуулганд Орлого / Зарлага тусдаа эсвэл Дүн гэсэн баганатай байдаг
-    income_col = find_col(["орлого", "олоого", "kt", "credit"])
+    # "оолого", "орлого", "олоого" зэрэг үсгийн алдаатай хувилбаруудыг давхар шалгана
+    income_col = find_col(["орлого", "оолого", "олоого", "kt", "credit"])
     expense_col = find_col(["зарлага", "dt", "debit"])
     amount_col = find_col(["дүн", "amount", "dun", "үнэ"])
 
-    if st.button(save_btn):
+    if st.button(save_btn, type="primary"):
       if date_col is not None and desc_col is not None:
         conn = get_connection()
         cursor = conn.cursor()
@@ -267,21 +263,26 @@ if uploaded_file is not None:
         saved_count = 0
         for _, row in df.iterrows():
           try:
-            # Хоосон утгатай мөрүүдийг алгасах
             if pd.isnull(row[date_col]):
               continue
 
             date_val = str(row[date_col]).strip()
-            desc_val = str(row[desc_col]).strip() if pd.notnull(row[desc_col]) else "Гүйлгээ"
+            desc_val = (
+                str(row[desc_col]).strip()
+                if pd.notnull(row[desc_col])
+                else "Гүйлгээ"
+            )
 
-            # Дүн болон Орлого/Зарлагыг тооцоолох
             amount_val = 0.0
             tx_type = "Зарлага"
 
             if income_col is not None and expense_col is not None:
-              inc_val = str(row[income_col]).replace(",", "").replace("₮", "").strip()
-              exp_val = str(row[expense_col]).replace(",", "").replace("₮", "").strip()
+              inc_raw = row[income_col]
+              exp_raw = row[expense_col]
               
+              inc_val = str(inc_raw).replace(",", "").replace("₮", "").strip() if pd.notnull(inc_raw) else ""
+              exp_val = str(exp_raw).replace(",", "").replace("₮", "").strip() if pd.notnull(exp_raw) else ""
+
               if inc_val and inc_val != "nan" and inc_val != "0" and inc_val != "0.0":
                 amount_val = float(inc_val)
                 tx_type = "Орлого"
