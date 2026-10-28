@@ -16,13 +16,13 @@ kind_labels = {"income": "Орлого", "expense": "Зарлага", "transfer"
 
 try:
     with get_session() as session:
-        # Category авах зөв баталгаажсан синтакс
-        categories = session.scalars(
+        # SQLAlchemy 2.0 стандарт аюулгүй синтакс
+        categories = session.execute(
             select(Category).order_by(Category.kind, Category.name)
-        ).all()
+        ).scalars().all()
         
         with st.spinner("Ангилаагүй гүйлгээнүүдийг ачаалж байна..."):
-            unclassified = session.scalars(
+            unclassified = session.execute(
                 select(Transaction).where(
                     or_(
                         Transaction.category_source == "unclassified",
@@ -30,7 +30,7 @@ try:
                         Transaction.category_id.is_(None)
                     )
                 )
-            ).all()
+            ).scalars().all()
 
         category_options = [
             f"{kind_labels.get(category.kind, category.kind)}: {category.name}"
@@ -45,9 +45,9 @@ try:
         
         counterparties = {}
         if counterparty_ids:
-            cp_results = session.scalars(
+            cp_results = session.execute(
                 select(Counterparty).where(Counterparty.id.in_(counterparty_ids))
-            ).all()
+            ).scalars().all()
             counterparties = {item.id: item for item in cp_results}
         
         transactions_by_counterparty: dict[int, list[Transaction]] = {}
@@ -152,11 +152,11 @@ try:
                         counterparty.is_own_account = bool(values["own account"])
                         counterparty.ask_per_txn = bool(values["ask per txn"])
                         
-                        tx_results = session.scalars(
+                        tx_results = session.execute(
                             select(Transaction.id).where(
                                 Transaction.counterparty_id == counterparty.id
                             )
-                        ).all()
+                        ).scalars().all()
                         changed_ids.extend(tx_results)
                         
                     with st.spinner("Гүйлгээг дахин ангилж байна..."):
