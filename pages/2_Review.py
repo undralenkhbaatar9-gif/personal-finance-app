@@ -1,4 +1,5 @@
 from decimal import Decimal
+import traceback
 import pandas as pd
 import streamlit as st
 
@@ -15,7 +16,6 @@ kind_labels = {"income": "Орлого", "expense": "Зарлага", "transfer"
 
 try:
     with get_session() as session:
-        # session.query ашиглан ямар ч алдаагүйгээр category-уудыг авах
         categories = session.query(Category).order_by(Category.kind, Category.name).all()
         
         with st.spinner("Ангилаагүй гүйлгээнүүдийг ачаалж байна..."):
@@ -156,6 +156,7 @@ try:
                 st.info("Ангилах харилцагчийн мэдээлэл одоогоор алга байна.")
 except Exception as error:
     st.error(f"Алдаа гарлаа: {error}")
+    st.code(traceback.format_exc())
 
 if notification_message:
     st.success(notification_message)
