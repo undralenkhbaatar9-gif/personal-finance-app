@@ -9,34 +9,34 @@ apply_global_styles()
 st.title("Санхүүгийн хяналтын самбар")
 st.write("Таны орлого, зарлага болон санхүүгийн ерөнхий дүр зураг.")
 
-# Хугацааны хүрээ (Сүүлийн 1 жил эсвэл илүү өргөнөөр харах)
 today = date.today()
 date_from = today - timedelta(days=365)
 date_to = today
 
 try:
     with get_session() as session:
-        # Бүх гүйлгээнээс орлого, зарлагыг шууд нарийвчлан шүүж авах
+        # Гүйлгээг төрлөөр нь яг таг шүүж авах
         df = transactions_export(session, date_from, date_to, include_transfers=False)
         
         if not df.empty and "kind" in df.columns:
-            total_income = df[df["kind"] == "income"]["amount"].sum() or 0
-            # Зарлага хасагдсан утгатай эсвэл absolute байж болох тул ABS ашиглана
-            total_expense = df[df["kind"] == "expense"]["amount"].abs().sum() or 0
+            # Зөвхөн орлогын төрөлтэй гүйлгээг нтлөх
+            total_income = df[df["kind"] == "income"]["amount"].sum() if not df[df["kind"] == "income"].empty else 0
+            # Зөвхөн зарлагын төрөлтэй гүйлгээг шүүж тухайн дүнг авах
+            total_expense = df[df["kind"] == "expense"]["amount"].abs().sum() if not df[df["kind"] == "expense"].empty else 0
         else:
             total_income = 0
             total_expense = 0
 
         net_balance = total_income - total_expense
 
-        # Метрик хэсэг (Орлого, Зарлага, Үлдэгдэл)
+        # Метрик хэсэг
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("НИЙТ ОРЛОГО", f"{total_income:,.2f} ₮")
+            st.metric("НИЙТ ОРЛОГО", f"{float(total_income):,.2f} ₮")
         with col2:
-            st.metric("НИЙТ ЗАРЛАГА", f"{total_expense:,.2f} ₮")
+            st.metric("НИЙТ ЗАРЛАГА", f"{float(total_expense):,.2f} ₮")
         with col3:
-            st.metric("ЦЭВЭР ҮЛДЭГДЭЛ", f"{net_balance:,.2f} ₮", delta=f"{net_balance:,.2f} ₮")
+            st.metric("ЦЭВЭР ҮЛДЭГДЭЛ", f"{float(net_balance):,.2f} ₮", delta=f"{float(net_balance):,.2f} ₮")
 
         st.markdown("---")
         
@@ -45,9 +45,8 @@ try:
         monthly_df = monthly_summary(session, date_from, date_to, include_transfers=False)
         
         if not monthly_df.empty:
-            # Графикийг илүү ойлгомжтой харуулахын тулд index-ийг month болгоно
-            chart_data = monthly_df.set_index("month")[["income", "expense"]]
-            st.bar_chart(chart_data)
+            # Графикийн датаг баталгаажуулах
+            st.bar_chart(monthly_df.set_index("month")[["income", "expense"]])
         else:
             st.info("📌 Одоогоор сарын мэдээлэл байхгүй байна.")
 
