@@ -239,7 +239,7 @@ class KhanParser(BankParser):
                 _cell_text(value) for value in values
             ).casefold()
 
-            if "нийт дүн" in row_text:
+            if "нийт дүн" in row_text or row_text.strip().startswith("нийт"):
                 if values[3] not in (None, ""):
                     total_credit = abs(to_decimal(values[3]))
 

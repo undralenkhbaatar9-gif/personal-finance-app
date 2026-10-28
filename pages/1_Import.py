@@ -1,326 +1,107 @@
-import os
-import sqlite3
+import tempfile
+
 import pandas as pd
 import streamlit as st
+from sqlalchemy import select
 
-st.set_page_config(
-    page_title="Хуулга импортлох", page_icon="📄", layout="wide"
-)
+from finance.db import get_session
+from finance.importer import DuplicateFileError, ValidationError, import_statement
+from finance.models import Import
+from finance.parsers import PARSERS
+from finance.ui import apply_global_styles, render_footer
 
-# --- ХЭЛ СОНГОГЧ (Sidebar) ---
-st.sidebar.markdown("### 🌐 Дэлгэцийн хэл / Language")
-lang = st.sidebar.selectbox(
-    "Хэл сонгох", ["Монгол", "English"], label_visibility="collapsed"
-)
+st.set_page_config(page_title="Хуулга импортлох", page_icon="📄", layout="wide")
+apply_global_styles()
 
-# --- БАНКНЫ БРЭНД ӨНГӨНИЙ ТОХИРГОО ---
-bank_styles = {
-    "Хаан банк": {
-        "color": "#006A4E",
-        "bg_glow": "rgba(0, 106, 78, 0.15)",
-    },
-    "Голомт банк": {
-        "color": "#004B87",
-        "bg_glow": "rgba(0, 75, 135, 0.15)",
-    },
-    "Хас банк": {
-        "color": "#FF6B00",
-        "bg_glow": "rgba(255, 107, 0, 0.15)",
-    },
-    "Төрийн банк": {
-        "color": "#009EE0",
-        "bg_glow": "rgba(0, 158, 224, 0.15)",
-    },
-    "ХХБ (Худалдаа хөгжлийн банк)": {
-        "color": "#0072CE",
-        "bg_glow": "rgba(0, 114, 206, 0.15)",
-    },
-    "Ариг банк": {
-        "color": "#8E44AD",
-        "bg_glow": "rgba(142, 68, 173, 0.15)",
-    },
-    "Богд банк": {
-        "color": "#D4AC0D",
-        "bg_glow": "rgba(212, 172, 13, 0.15)",
-    },
+st.title("📄 Банкны хуулга импортлох")
+
+bank_options = list(PARSERS.keys())
+bank_code_map = {
+    "khan": "Хаан банк",
 }
 
-# --- ОРЧУУЛГА ---
-if lang == "Монгол":
-  title_text = "📄 Банкны хуулга импортлох"
-  bank_label = "Банк сонгох"
-  file_label_text = "{bank}-ны хуулгаа сонгоно уу (Excel, CSV)"
-  success_file = "📂 Файл амжилттай орж ирлээ: "
-  preview_text = "📋 Уншсан файлын мэдээлэл (Урьдчилсан харагдац):"
-  save_btn = "💾 Өгөгдлийн санд хадгалах"
-  save_success = (
-      "✅ Нийт {count} гүйлгээ амжилттай өгөгдлийн санд хадгалагдлаа!"
-  )
-  prev_imports = "Өмнөх импортууд"
-  no_history = "Импортын түүхийг одоогоор харуулах боломжгүй байна."
-  col_error = (
-      "⚠️ Файлаас 'Огноо', 'Утга' эсвэл Дүнгийн багануудыг олоход алдаа гарлаа."
-      " Файлын бүтцийг шалгана уу."
-  )
-else:
-  title_text = "📄 Import Bank Statement"
-  bank_label = "Select Bank"
-  file_label_text = "Select {bank} statement file (Excel, CSV)"
-  success_file = "📂 File successfully loaded: "
-  preview_text = "📋 File Preview:"
-  save_btn = "💾 Save to Database"
-  save_success = "✅ Total {count} transactions successfully saved!"
-  prev_imports = "Previous Imports"
-  no_history = "Import history is currently unavailable."
-  col_error = (
-      "⚠️ Could not find 'Date', 'Description', or Amount columns in the file."
-      " Please check file structure."
-  )
-
-st.markdown(f"### {title_text}")
-
-bank_options = list(bank_styles.keys())
-bank = st.selectbox(bank_label, bank_options)
-
-selected_bank_info = bank_styles.get(
-    bank, {"color": "#10B981", "bg_glow": "rgba(16, 185, 129, 0.15)"}
-)
-bank_color = selected_bank_info["color"]
-bank_glow = selected_bank_info["bg_glow"]
-
-# 🌙 CSS загвар
-st.markdown(
-    f"""
-<style>
-    .stApp {{
-        background-color: #0e1117;
-        color: #ffffff;
-    }}
-    [data-testid="stSidebar"] {{
-        background-color: #1e222d !important;
-    }}
-    [data-testid="stSidebar"] span, 
-    [data-testid="stSidebar"] p, 
-    [data-testid="stSidebar"] div,
-    [data-testid="stSidebar"] label,
-    [data-testid="stSidebar"] a {{
-        color: #ffffff !important;
-    }}
-    
-    .stSelectbox label p, label {{
-        color: #ffffff !important;
-    }}
-    
-    div[data-baseweb="select"] > div {{
-        background-color: #1e222d !important;
-        color: #ffffff !important;
-        border-color: {bank_color} !important;
-        box-shadow: 0 0 10px {bank_glow} !important;
-    }}
-    
-    div[data-baseweb="select"] span {{
-        color: #ffffff !important;
-    }}
-
-    div[data-baseweb="popover"], div[role="listbox"] {{
-        background-color: #1e222d !important;
-        color: #ffffff !important;
-    }}
-    
-    div[role="option"] {{
-        background-color: #1e222d !important;
-        color: #ffffff !important;
-    }}
-    div[role="option"]:hover {{
-        background-color: #35383f !important;
-    }}
-
-    .bank-banner {{
-        background: linear-gradient(135deg, {bank_glow} 0%, rgba(30, 34, 45, 0.6) 100%);
-        border-left: 5px solid {bank_color};
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
-        border-right: 1px solid rgba(255, 255, 255, 0.08);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 12px;
-        padding: 16px 20px;
-        margin-bottom: 20px;
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        box-shadow: 0 4px 20px {bank_glow};
-    }}
-    .bank-color-dot {{
-        width: 18px;
-        height: 18px;
-        background-color: {bank_color};
-        border-radius: 50%;
-        box-shadow: 0 0 12px {bank_color};
-    }}
-
-    [data-testid="stFileUploader"] {{
-        background-color: rgba(255, 255, 255, 0.03) !important;
-        border: 2px dashed {bank_color} !important;
-        border-radius: 14px;
-        padding: 20px;
-    }}
-    [data-testid="stFileUploader"] section {{
-        background-color: transparent !important;
-    }}
-    [data-testid="stFileUploader"] div, 
-    [data-testid="stFileUploader"] span, 
-    [data-testid="stFileUploader"] small, 
-    [data-testid="stFileUploader"] p {{
-        color: #ffffff !important;
-    }}
-    [data-testid="stFileUploader"] button {{
-        color: #ffffff !important;
-        background-color: {bank_color} !important;
-        font-weight: 600 !important;
-        border: none !important;
-        border-radius: 8px !important;
-    }}
-    [data-testid="stFileUploader"] button:hover {{
-        opacity: 0.85 !important;
-    }}
-</style>
-""",
-    unsafe_allow_html=True,
+bank_label_map = {code: bank_code_map.get(code, code) for code in bank_options}
+bank = st.selectbox(
+    "Банк сонгох",
+    options=bank_options,
+    format_func=lambda code: bank_label_map.get(code, code),
 )
 
-banner_html = f"""
-<div class="bank-banner">
-    <div class="bank-color-dot"></div>
-    <div>
-        <h3 style="margin: 0; color: #ffffff; font-size: 18px;">{bank}</h3>
-        <p style="margin: 0; color: #94a3b8; font-size: 12px;">{"Банкны хуулга импортлох хэсэг" if lang=="Монгол" else "Bank Statement Import Section"}</p>
-    </div>
-</div>
-"""
-st.markdown(banner_html, unsafe_allow_html=True)
-
-uploaded_file = st.file_uploader(
-    file_label_text.format(bank=bank), type=["xlsx", "csv"]
-)
-
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB_PATH = os.path.join(ROOT_DIR, "finance.db")
-
-
-def get_connection():
-  conn = sqlite3.connect(DB_PATH)
-  conn.row_factory = sqlite3.Row
-  return conn
-
+uploaded_file = st.file_uploader("Банкны хуулгаа сонгоно уу (XLSX)", type=["xlsx"])
 
 if uploaded_file is not None:
-  st.success(f"{success_file}{uploaded_file.name}")
-  try:
-    if uploaded_file.name.endswith(".csv"):
-      df_raw = pd.read_csv(uploaded_file, header=None)
-    else:
-      df_raw = pd.read_excel(uploaded_file, header=None)
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
+            tmp.write(uploaded_file.getbuffer())
+            tmp_path = tmp.name
 
-    header_row_idx = 0
-    for idx, row in df_raw.head(10).iterrows():
-      row_str = " ".join([str(val).lower() for val in row.values])
-      if "огноо" in row_str or "огнос" in row_str or "date" in row_str:
-        header_row_idx = idx
-        break
+        parser = PARSERS[bank]
+        if not parser.detect(tmp_path):
+            st.warning("Энэ файл сонгосон банкны хуулгатай таарахгүй байна.")
+        else:
+            info, txns = parser.parse(tmp_path)
+            st.subheader("Хуулгын мэдээлэл")
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("Данс", info.account_no)
+            c2.metric("Валют", info.currency)
+            c3.metric("Нийт орлого", f"{info.total_credit or 0:,.2f}")
+            c4.metric("Нийт зарлага", f"{info.total_debit or 0:,.2f}")
 
-    uploaded_file.seek(0)
-    if uploaded_file.name.endswith(".csv"):
-      df = pd.read_csv(uploaded_file, skiprows=header_row_idx)
-    else:
-      df = pd.read_excel(uploaded_file, skiprows=header_row_idx)
+            st.subheader("Урьдчилсан харагдац (эхний 20 мөр)")
+            preview_rows = []
+            for t in txns[:20]:
+                preview_rows.append(
+                    {
+                        "Огноо": t.txn_datetime,
+                        "Дүн": float(t.amount),
+                        "Тайлбар": t.description,
+                        "Дансны үлдэгдэл (урьд)": float(t.balance_before) if t.balance_before is not None else None,
+                        "Дансны үлдэгдэл (дараа)": float(t.balance_after) if t.balance_after is not None else None,
+                        "Харилцагчийн данс": t.counterparty_account,
+                        "Салбар": t.branch_code,
+                    }
+                )
+            st.dataframe(pd.DataFrame(preview_rows), use_container_width=True)
 
-    st.markdown(f"#### {preview_text}")
-    st.dataframe(df.head(), use_container_width=True)
-
-    cols_lower = [str(c).strip().lower() for c in df.columns]
-
-
-    def find_col(keywords):
-      for kw in keywords:
-        for idx, col in enumerate(cols_lower):
-          if kw in col:
-            return df.columns[idx]
-      return None
-
-
-    date_col = find_col(["огноо", "огнос", "date", "ognoo"])
-    desc_col = find_col(["утга", "гүйлгээний утга", "description", "desc", "utga"])
-    
-    # "оолого", "орлого", "олоого" зэрэг үсгийн алдаатай хувилбаруудыг давхар шалгана
-    income_col = find_col(["орлого", "оолого", "олоого", "kt", "credit"])
-    expense_col = find_col(["зарлага", "dt", "debit"])
-    amount_col = find_col(["дүн", "amount", "dun", "үнэ"])
-
-    if st.button(save_btn, type="primary"):
-      if date_col is not None and desc_col is not None:
-        conn = get_connection()
-        cursor = conn.cursor()
-
-        saved_count = 0
-        for _, row in df.iterrows():
-          try:
-            if pd.isnull(row[date_col]):
-              continue
-
-            date_val = str(row[date_col]).strip()
-            desc_val = (
-                str(row[desc_col]).strip()
-                if pd.notnull(row[desc_col])
-                else "Гүйлгээ"
-            )
-
-            amount_val = 0.0
-            tx_type = "Зарлага"
-
-            if income_col is not None and expense_col is not None:
-              inc_raw = row[income_col]
-              exp_raw = row[expense_col]
-              
-              inc_val = str(inc_raw).replace(",", "").replace("₮", "").strip() if pd.notnull(inc_raw) else ""
-              exp_val = str(exp_raw).replace(",", "").replace("₮", "").strip() if pd.notnull(exp_raw) else ""
-
-              if inc_val and inc_val != "nan" and inc_val != "0" and inc_val != "0.0":
-                amount_val = float(inc_val)
-                tx_type = "Орлого"
-              elif exp_val and exp_val != "nan" and exp_val != "0" and exp_val != "0.0":
-                amount_val = float(exp_val)
-                tx_type = "Зарлага"
-            elif amount_col is not None:
-              raw_amt = str(row[amount_col]).replace(",", "").replace("₮", "").strip()
-              amount_val = float(raw_amt) if raw_amt and raw_amt != "nan" else 0.0
-              tx_type = "Зарлага" if amount_val < 0 else "Орлого"
-
-            cursor.execute(
-                """
-                    INSERT INTO transactions (date, description, amount, type, category, bank_name)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    date_val,
-                    desc_val,
-                    abs(amount_val),
-                    tx_type,
-                    "Импортлогдсон",
-                    bank,
-                ),
-            )
-            saved_count += 1
-          except Exception:
-            continue
-
-        conn.commit()
-        conn.close()
-        st.success(save_success.format(count=saved_count))
-      else:
-        st.error(col_error)
-
-  except Exception as ex:
-    st.error(f"Error: {ex}")
+            if st.button("Импорт хийх", type="primary"):
+                try:
+                    result = import_statement(tmp_path, uploaded_file.name, bank)
+                    st.success(
+                        f"Амжилттай импортоллоо. Нийт уншсан: {result.rows_read}, Шинэ: {result.rows_new}, Давхардсан: {result.rows_duplicate}"
+                    )
+                    st.info("Гүйлгээг Review хуудсанд ангилах боломжтой.")
+                except DuplicateFileError as e:
+                    st.error(str(e))
+                except ValidationError as e:
+                    st.error("Хуулга баталгаажуулалтад тэнцээгүй байна:")
+                    for err in e.errors:
+                        st.write(f"- {err}")
+                except Exception as e:
+                    st.error(f"Алдаа гарлаа: {e}")
+    except Exception as e:
+        st.error(f"Файл боловсруулахад алдаа гарлаа: {e}")
 
 st.markdown("---")
-st.markdown(f"### {prev_imports}")
-st.info(no_history)
+st.subheader("Өмнөх импортууд")
+try:
+    with get_session() as session:
+        imports = session.scalars(select(Import).order_by(Import.imported_at.desc())).all()
+        if imports:
+            rows = []
+            for imp in imports:
+                rows.append(
+                    {
+                        "Файл": imp.file_name,
+                        "Импортлогдсон огноо": imp.imported_at,
+                        "Уншсан": imp.rows_read,
+                        "Шинэ": imp.rows_new,
+                        "Давхардсан": imp.rows_duplicate,
+                    }
+                )
+            st.dataframe(pd.DataFrame(rows), use_container_width=True)
+        else:
+            st.info("Одоогоор импортын түүх алга байна.")
+except Exception as e:
+    st.error(f"Түүхийг ачаалахад алдаа гарлаа: {e}")
+
+render_footer()
