@@ -60,7 +60,7 @@ if lang == "Монгол":
   no_history = "Импортын түүхийг одоогоор харуулах боломжгүй байна."
   col_error = (
       "⚠️ Файлаас 'Огноо', 'Утга' эсвэл 'Дүн' багануудыг олоход алдаа гарлаа."
-      " Баганын нэрээ шалгана уу."
+      " Файлын бүтцийг шалгана уу."
   )
 else:
   title_text = "📄 Import Bank Statement"
@@ -74,7 +74,7 @@ else:
   no_history = "Import history is currently unavailable."
   col_error = (
       "⚠️ Could not find 'Date', 'Description', or 'Amount' columns in the"
-      " file. Please check column headers."
+      " file. Please check file structure."
   )
 
 st.markdown(f"### {title_text}")
@@ -215,10 +215,26 @@ def get_connection():
 if uploaded_file is not None:
   st.success(f"{success_file}{uploaded_file.name}")
   try:
+    # 1. Эхлээд толгой мөргүйгээр уншиж хаана гарчиг байгааг олдог
     if uploaded_file.name.endswith(".csv"):
-      df = pd.read_csv(uploaded_file)
+      df_raw = pd.read_csv(uploaded_file, header=None)
     else:
-      df = pd.read_excel(uploaded_file)
+      df_raw = pd.read_excel(uploaded_file, header=None)
+
+    # 2. "Огноо" эсвэл "Огнос" гэсэн үг аль мөрөнд байгааг автоматаар хайна
+    header_row_idx = 0
+    for idx, row in df_raw.head(10).iterrows():
+      row_str = " ".join([str(val).lower() for val in row.values])
+      if "огноо" in row_str or "огнос" in row_str or "date" in row_str:
+        header_row_idx = idx
+        break
+
+    # 3. Олдсон мөрөөр толгойг нь тааруулж файлыг дахин зөв уншина
+    uploaded_file.seek(0)
+    if uploaded_file.name.endswith(".csv"):
+      df = pd.read_csv(uploaded_file, skiprows=header_row_idx)
+    else:
+      df = pd.read_excel(uploaded_file, skiprows=header_row_idx)
 
     st.markdown(f"#### {preview_text}")
     st.dataframe(df.head(), use_container_width=True)
@@ -227,7 +243,6 @@ if uploaded_file is not None:
     cols_lower = [str(c).strip().lower() for c in df.columns]
 
 
-    # Туслах функц: түлхүүр үгээр багана олох
     def find_col(keywords):
       for kw in keywords:
         for idx, col in enumerate(cols_lower):
@@ -236,34 +251,47 @@ if uploaded_file is not None:
       return None
 
 
-    date_col = find_col(["огноо", "date", "ognoo"])
+    date_col = find_col(["огноо", "огнос", "date", "ognoo"])
     desc_col = find_col(["утга", "гүйлгээний утга", "description", "desc", "utga"])
-    amount_col = find_col(["дүн", "amount", "dun", "үнэ", "гүйлгээний дүн"])
-
-    # Хэрэв толгой мөрөөс олдохгүй бол индексээр нь авна (fallback)
-    if date_col is None and len(df.columns) > 0:
-      date_col = df.columns[0]
-    if desc_col is None and len(df.columns) > 1:
-      desc_col = df.columns[1]
-    if amount_col is None and len(df.columns) > 2:
-      amount_col = df.columns[2]
+    
+    # Хас банк болон бусад банкнуудын хуулганд Орлого / Зарлага тусдаа эсвэл Дүн гэсэн баганатай байдаг
+    income_col = find_col(["орлого", "олоого", "kt", "credit"])
+    expense_col = find_col(["зарлага", "dt", "debit"])
+    amount_col = find_col(["дүн", "amount", "dun", "үнэ"])
 
     if st.button(save_btn):
-      if date_col is not None and desc_col is not None and amount_col is not None:
+      if date_col is not None and desc_col is not None:
         conn = get_connection()
         cursor = conn.cursor()
 
         saved_count = 0
         for _, row in df.iterrows():
           try:
-            date_val = str(row[date_col]) if pd.notnull(row[date_col]) else "2026-01-01"
-            desc_val = str(row[desc_col]) if pd.notnull(row[desc_col]) else "Гүйлгээ"
-            
-            # Дүн цэвэрлэх (ком болон зай арилгах)
-            raw_amt = str(row[amount_col]).replace(",", "").replace("₮", "").strip()
-            amount_val = float(raw_amt) if pd.notnull(raw_amt) and raw_amt != "" else 0.0
+            # Хоосон утгатай мөрүүдийг алгасах
+            if pd.isnull(row[date_col]):
+              continue
 
-            tx_type = "Зарлага" if amount_val < 0 else "Орлого"
+            date_val = str(row[date_col]).strip()
+            desc_val = str(row[desc_col]).strip() if pd.notnull(row[desc_col]) else "Гүйлгээ"
+
+            # Дүн болон Орлого/Зарлагыг тооцоолох
+            amount_val = 0.0
+            tx_type = "Зарлага"
+
+            if income_col is not None and expense_col is not None:
+              inc_val = str(row[income_col]).replace(",", "").replace("₮", "").strip()
+              exp_val = str(row[expense_col]).replace(",", "").replace("₮", "").strip()
+              
+              if inc_val and inc_val != "nan" and inc_val != "0" and inc_val != "0.0":
+                amount_val = float(inc_val)
+                tx_type = "Орлого"
+              elif exp_val and exp_val != "nan" and exp_val != "0" and exp_val != "0.0":
+                amount_val = float(exp_val)
+                tx_type = "Зарлага"
+            elif amount_col is not None:
+              raw_amt = str(row[amount_col]).replace(",", "").replace("₮", "").strip()
+              amount_val = float(raw_amt) if raw_amt and raw_amt != "nan" else 0.0
+              tx_type = "Зарлага" if amount_val < 0 else "Орлого"
 
             cursor.execute(
                 """
