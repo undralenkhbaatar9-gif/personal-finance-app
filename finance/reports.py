@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+import traceback
 import streamlit as st
 from finance.db import get_session
 from finance.ui import apply_global_styles, render_footer
@@ -66,5 +67,7 @@ try:
 
 except Exception as error:
     st.error(f"Тайлангийн мэдээлэл ачаалахад алдаа гарлаа: {error}")
+    # Яг ямар мөрөнд алдаа гарч байгааг дэлгэц дээр ил гаргаж харуулах
+    st.code(traceback.format_exc())
 
 render_footer()
